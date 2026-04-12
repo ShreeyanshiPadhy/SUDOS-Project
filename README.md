@@ -76,7 +76,7 @@ SUDOS
 * **Shreeyanshi Padhy**
 * **Abha Kiran Dongre**
 * **Ananya Alfred**
-* **Lavanya**
+* **Lavanya R**
 
 ---
 
