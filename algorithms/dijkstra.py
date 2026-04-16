@@ -140,3 +140,42 @@ if __name__ == "__main__":
     print("Target:", target)
     print("Shortest Distance:", distance)
     print("Path:", path)
+import heapq
+
+def single_source_dijkstra(graph, source):
+    dist = {node: float('inf') for node in graph}
+    dist[source] = 0
+
+    pq = [(0, source)]
+
+    while pq:
+        curr_dist, u = heapq.heappop(pq)
+
+        if curr_dist > dist[u]:
+            continue
+
+        for v, w in graph[u]:
+            if dist[v] > curr_dist + w:
+                dist[v] = curr_dist + w
+                heapq.heappush(pq, (dist[v], v))
+
+    return dist
+
+
+def get_distance_matrix(graph):
+    nodes = list(graph.keys())
+    n = len(nodes)
+
+    node_index = {node: i for i, node in enumerate(nodes)}
+
+    dist_matrix = [[float('inf')] * n for _ in range(n)]
+
+    for src in nodes:
+        distances = single_source_dijkstra(graph, src)
+
+        for dest in nodes:
+            i = node_index[src]
+            j = node_index[dest]
+            dist_matrix[i][j] = distances[dest]
+
+    return dist_matrix
