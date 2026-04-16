@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUDOS Algorithm Visualizer</title>
+<style>
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'Fira Code', 'Courier New', Courier, monospace;
+  
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f4f6f8;
+  --color-background-tertiary: #fafafa;
+  --color-background-info: #eef5fc;
+  
+  --color-border-secondary: #e0e4e8;
+  --color-border-tertiary: #eaedf0;
+  
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-text-info: #0c447c;
+  
+  --border-radius-md: 6px;
+  --border-radius-lg: 10px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);font-size:13px}
+.shell{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-tertiary); margin: 20px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:48px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary)}
+.logo{font-size:14px;font-weight:500;color:var(--color-text-primary)}.logo span{color:#185FA5}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.tab{padding:10px 18px;font-size:12px;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:#185FA5;border-bottom:2px solid #185FA5;font-weight:500}
+.tab:hover:not(.active){color:var(--color-text-primary);background:var(--color-background-secondary)}
+.pane{display:none;padding:16px;gap:14px;flex-direction:column}
+.pane.active{display:flex}
+.row{display:flex;gap:12px;align-items:flex-start}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px}
+.card-sm{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.card-title{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;flex:1}
+.metric-label{font-size:10px;color:var(--color-text-secondary);margin-bottom:3px}
+.metric-value{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.metric-sub{font-size:10px;margin-top:2px}
+.green{color:#3B6D11}.red{color:#A32D2D}.blue{color:#185FA5}.amber{color:#854F0B}
+canvas{display:block;width:100%}
+.algo-btn{padding:6px 12px;font-size:11px;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .15s}
+.algo-btn.active{background:#E6F1FB;color:#0C447C;border-color:#85B7EB;font-weight:500}
+.algo-btn:hover:not(.active){background:var(--color-background-secondary);color:var(--color-text-primary)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;display:inline-block}
+.pill-blue{background:#E6F1FB;color:#0C447C}
+.pill-green{background:#EAF3DE;color:#27500A}
+.pill-amber{background:#FAEEDA;color:#633806}
+.pill-teal{background:#E1F5EE;color:#085041}
+.pill-purple{background:#EEEDFE;color:#3C3489}
+table.ct{width:100%;border-collapse:collapse;font-size:11px}
+table.ct th{padding:5px 8px;text-align:left;color:var(--color-text-secondary);font-weight:500;border-bottom:0.5px solid var(--color-border-tertiary)}
+table.ct td{padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+table.ct tr:last-child td{border:none}
+.winner{background:#EAF3DE}
+.route-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:500;margin:2px}
+.sep{color:var(--color-text-tertiary);font-size:10px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bar-label{width:80px;font-size:11px;color:var(--color-text-secondary);flex-shrink:0}
+.bar-bg{flex:1;height:10px;background:var(--color-background-secondary);border-radius:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:5px;transition:width .4s}
+.bar-val{width:36px;font-size:11px;font-weight:500;text-align:right;color:var(--color-text-primary)}
+.node-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--color-text-secondary)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.step-indicator{display:flex;gap:4px;align-items:center;margin-bottom:8px}
+.step-dot{width:6px;height:6px;border-radius:50%;background:var(--color-border-secondary)}
+.step-dot.active{background:#185FA5}
+.info-box{background:var(--color-background-info);border-radius:var(--border-radius-md);padding:8px 12px;font-size:11px;color:var(--color-text-info)}
+</style>
+</head>
+<body>
+
+<h2 class="sr-only">SUDOS algorithm visualizer: interactive graph and algorithm comparison for delivery route optimization</h2>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="logo"><span>SUDOS</span> — Algorithm Visualizer</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="pill pill-blue">Report Generated</span>
+      <span style="font-size:11px;color:var(--color-text-secondary)" id="head-stats">Loading...</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('graph')">Graph & Routes</div>
+    <div class="tab" onclick="switchTab('algo')">Algorithm Comparison</div>
+  </div>
+
+  <!-- TAB 1: Graph & Routes -->
+  <div class="pane active" id="pane-graph">
+    <div class="row">
+      <div style="font-size:11px;color:var(--color-text-secondary)">Select algorithm to visualize route:</div>
+      <div class="btns" id="algo-tabs">
+        <!-- Rendered Dynamically -->
+      </div>
+    </div>
+    <div class="row" style="align-items:stretch">
+      <div class="card" style="flex:1;min-width:0">
+        <div class="card-title" id="graph-title">Route visualization</div>
+        <canvas id="graphCanvas" height="280"></canvas>
+        <div class="node-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>Depot</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#639922"></div>Delivered</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:160px">
+        <div class="metric"><div class="metric-label">Total distance</div><div class="metric-value" id="m-dist">0 km</div><div class="metric-sub" id="m-dist-sub"></div></div>
+        <div class="metric"><div class="metric-label">Time complexity (Theoretical)</div><div class="metric-value" style="font-size:15px" id="m-time">-</div></div>
+      </div>
+    </div>
+    <div class="card-sm">
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:5px">Route breakdown</div>
+      <div id="route-chips" style="display:flex;flex-wrap:wrap;gap:2px"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Algorithm Comparison -->
+  <div class="pane" id="pane-algo">
+    <div class="card">
+      <div class="card-title">Full algorithm comparison</div>
+      <table class="ct">
+        <thead><tr><th>Algorithm</th><th>Cost</th><th>Actual Runtime</th></tr></thead>
+        <tbody id="compare-tbody">
+          <!-- Rendered Dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// Data injected by main.py
+const SUDOS_DATA = <!-- INJECT_SUDOS_DATA -->;
+
+const NODES = SUDOS_DATA.NODES || [];
+const EDGES = SUDOS_DATA.EDGES || [];
+const ALGOS = SUDOS_DATA.ALGOS || {};
+
+let currentAlgo = Object.keys(ALGOS)[0] || '';
+
+function renderTabs() {
+  const container = document.getElementById('algo-tabs');
+  container.innerHTML = '';
+  document.getElementById('head-stats').textContent = `${NODES.length} nodes · Report`;
+  
+  Object.keys(ALGOS).forEach(key => {
+    const btn = document.createElement('div');
+    btn.className = `algo-btn ${key === currentAlgo ? 'active' : ''}`;
+    btn.textContent = ALGOS[key].title;
+    btn.onclick = () => selectAlgo(key, btn);
+    container.appendChild(btn);
+  });
+  
+  const tbody = document.getElementById('compare-tbody');
+  tbody.innerHTML = '';
+  Object.keys(ALGOS).forEach(key => {
+    const d = ALGOS[key];
+    tbody.innerHTML += `<tr><td>${d.title}</td><td>${d.dist}</td><td>${d.runtime}</td></tr>`;
+  });
+}
+
+function drawGraph(canvasId, algo){
+  const c = document.getElementById(canvasId);
+  if(!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.parentElement.clientWidth - 28;
+  c.width = W; c.height = 280;
+  
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  NODES.forEach(n => {
+    minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+    minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+  });
+  
+  let spanX = maxX - minX || 100;
+  let spanY = maxY - minY || 100;
+  const margin = 30;
+  const sx = (W - 2 * margin) / spanX;
+  const sy = (280 - 2 * margin) / spanY;
+  
+  const trX = (x) => margin + (x - minX) * sx;
+  const trY = (y) => margin + (y - minY) * sy;
+
+  ctx.clearRect(0,0,W,280);
+
+  // Draw base edges faintly
+  EDGES.forEach(([a,b])=>{
+    const na=NODES[a],nb=NODES[b];
+    if(na && nb){
+        ctx.beginPath();
+        ctx.moveTo(trX(na.x), trY(na.y));
+        ctx.lineTo(trX(nb.x), trY(nb.y));
+        ctx.strokeStyle='rgba(128,128,128,0.15)';
+        ctx.lineWidth=1;
+        ctx.stroke();
+    }
+  });
+
+  if (!ALGOS[algo]) return;
+  const data = ALGOS[algo];
+  data.routes.forEach(route=>{
+    if (route.nodes.length === 0) return;
+    ctx.beginPath();
+    const first = NODES[route.nodes[0]];
+    ctx.moveTo(trX(first.x), trY(first.y));
+    for(let i=1;i<route.nodes.length;i++){
+      const n=NODES[route.nodes[i]];
+      if(n) ctx.lineTo(trX(n.x), trY(n.y));
+    }
+    ctx.strokeStyle=route.color || '#185FA5';
+    ctx.lineWidth=2;
+    ctx.setLineDash([]);
+    ctx.stroke();
+
+    route.nodes.forEach((ni,idx)=>{
+      const n=NODES[ni];
+      if(!n) return;
+      ctx.beginPath();
+      ctx.arc(trX(n.x), trY(n.y), idx===0?10:7, 0, Math.PI*2);
+      ctx.fillStyle = ni===0?'#185FA5':'#639922';
+      ctx.fill();
+      ctx.strokeStyle='#fff';
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+      
+      ctx.font='500 10px var(--font-sans,sans-serif)';
+      ctx.fillStyle='var(--color-text-primary,#222)';
+      ctx.textAlign='center';
+      ctx.fillText(n.label || `N${ni}`, trX(n.x), trY(n.y)+20);
+    });
+  });
+}
+
+function selectAlgo(key, btn){
+  document.querySelectorAll('.algo-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  currentAlgo = key;
+  const d = ALGOS[key];
+  if(!d) return;
+  document.getElementById('graph-title').textContent = d.title + ' — route visualization';
+  document.getElementById('m-dist').textContent = d.dist;
+  document.getElementById('m-dist-sub').textContent = d.distSub;
+  document.getElementById('m-time').textContent = d.time;
+  const chips = document.getElementById('route-chips');
+  chips.innerHTML = d.chips.map(c=>c==='|'
+    ?'<span class="sep" style="padding:3px 4px">|</span>'
+    :`<span class="route-chip" style="background:#E6F1FB;color:#0C447C">${c}</span>`
+  ).join('');
+  drawGraph('graphCanvas', key);
+}
+
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const ids=['graph','algo'];
+    t.classList.toggle('active', ids[i]===id);
+  });
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  if(id==='graph') setTimeout(()=>drawGraph('graphCanvas',currentAlgo),50);
+}
+
+window.addEventListener('load',()=>{
+  renderTabs();
+  selectAlgo(currentAlgo, document.querySelector('.algo-btn.active'));
+  // fallback if no active exists
+  const firstBtn = document.querySelector('.algo-btn');
+  if(firstBtn && !document.querySelector('.algo-btn.active')) selectAlgo(currentAlgo, firstBtn);
+});
+</script>
+</body>
+</html>

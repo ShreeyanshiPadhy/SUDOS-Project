@@ -2,6 +2,8 @@ import json
 import argparse
 import logging
 import sys
+import os
+import time
 
 from algorithms.route_optimizer import run_tsp_algorithms
 
@@ -11,6 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run SUDOS Algorithms")
     parser.add_argument("--dataset", type=str, default="datasets/small_graph.json")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--report", action="store_true", help="Generate interactive HTML report at ui/sudos_report.html")
 
     args = parser.parse_args()
 
@@ -37,7 +40,18 @@ def main():
     }
 
     # 🔥 FIX 3: Ensure connected subgraph using BFS
-    MAX_NODES = 50
+    MAX_NODES = 100
+
+    # First, make the entire graph symmetric so BFS extracts a traversable area
+    symmetric_graph = {node: [] for node in graph}
+    for u in graph:
+        for v, w in graph[u]:
+            symmetric_graph[u].append((v, w))
+            if v in symmetric_graph:
+                # Add reverse edge if missing to avoid one-way dead ends
+                if u not in [neigh for neigh, _ in symmetric_graph[v]]:
+                    symmetric_graph[v].append((u, w))
+    graph = symmetric_graph
 
     start = list(graph.keys())[0]
     visited = set([start])
@@ -52,7 +66,7 @@ def main():
 
     selected_nodes = visited
 
-    # Filter graph properly
+    # Filter graph strictly to the selected subgraph
     graph = {
         node: [(neigh, w) for neigh, w in graph[node] if neigh in selected_nodes]
         for node in selected_nodes
@@ -77,12 +91,136 @@ def main():
     # Always print greedy
     print(f"Greedy:    {results.get('greedy')}")
 
-    # Print heuristic if exists
     if "heuristic" in results:
         print(f"Heuristic: {results.get('heuristic')}")
 
-    # Print DP if exists
     print(f"DP:        {results.get('dp')}")
+
+    if args.report:
+        generate_html_report(args.dataset, data.get("coordinates", {}), graph, results)
+
+def generate_html_report(ds_name, coords, graph_edges, results):
+    import json
+    import math
+    
+    # Generate NODES
+    nodes = []
+    # mapping node id to index
+    node_list = list(graph_edges.keys())
+    
+    # fallback check if all coordinates in dataset are missing/zero
+    all_zero = all(coords.get(str(n), [0, 0]) == [0, 0] for n in node_list)
+    
+    for i, node_id in enumerate(node_list):
+        if all_zero:
+            # Generate a nice circular layout
+            angle = i * (2 * math.pi / len(node_list))
+            pos = [50 + 40 * math.cos(angle), 50 + 40 * math.sin(angle)]
+        else:
+            pos = coords.get(str(node_id), [0, 0])
+            
+        nodes.append({
+            "x": pos[0],
+            "y": pos[1],
+            "label": f"N{node_id}",
+            "name": f"Node {node_id}"
+        })
+        
+    # Generate EDGES
+    edges = []
+    for node, connects in graph_edges.items():
+        node_idx = node_list.index(node)
+        for neigh, weight in connects:
+            try:
+                neigh_idx = node_list.index(neigh)
+                edges.append([node_idx, neigh_idx, weight])
+            except ValueError:
+                pass
+
+    # Generate ALGOS
+    algos = {}
+    
+    # We map what results returns to the JS format
+    if "greedy" in results and isinstance(results["greedy"], dict):
+        # Convert path IDs to array indices
+        path_idx = [node_list.index(n) for n in results["greedy"]["route"] if n in node_list]
+        chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
+        algos["greedy"] = {
+            "title": "Greedy Nearest Neighbor",
+            "dist": f"{results['greedy']['cost']} units",
+            "distSub": "Fast heuristic route",
+            "time": "O(n²)",
+            "runtime": f"{results['greedy'].get('runtime', 0) * 1000:.2f} ms",
+            "routes": [{"color": "#185FA5", "nodes": path_idx, "label": "Greedy Tour"}],
+            "chips": chips
+        }
+        
+    if "heuristic" in results and isinstance(results["heuristic"], dict):
+        path_idx = [node_list.index(n) for n in results["heuristic"]["route"] if n in node_list]
+        chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
+        algos["heuristic"] = {
+            "title": "Insertion Heuristic TSP",
+            "dist": f"{results['heuristic']['cost']} units",
+            "distSub": "Less than 2x optimal",
+            "time": "O(n² log n)",
+            "runtime": f"{results['heuristic'].get('runtime', 0) * 1000:.2f} ms",
+            "routes": [{"color": "#BA7517", "nodes": path_idx, "label": "Heuristic Tour"}],
+            "chips": chips
+        }
+        
+    if "dp" in results:
+        if isinstance(results["dp"], dict):
+            # Route might be "Not reconstructed"
+            path_idx = []
+            chips = []
+            if isinstance(results["dp"].get("route"), list):
+                path_idx = [node_list.index(n) for n in results["dp"]["route"] if n in node_list]
+                chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
+            
+            algos["dp"] = {
+                "title": "DP-TSP (Exact)",
+                "dist": f"{results['dp']['cost']} units",
+                "distSub": "Guaranteed globally optimal",
+                "time": "O(2ⁿ·n²)",
+                "runtime": f"{results['dp'].get('runtime', 0) * 1000:.2f} ms",
+                "routes": [{"color": "#639922", "nodes": path_idx, "label": "Optimal Tour"}],
+                "chips": chips
+            }
+        else:
+            algos["dp"] = {
+                "title": "DP-TSP (Exact)",
+                "dist": "Skipped",
+                "distSub": "Dataset too large for Exact DP",
+                "time": "O(2ⁿ·n²)",
+                "runtime": "N/A",
+                "routes": [{"color": "#639922", "nodes": [], "label": "Skipped"}],
+                "chips": ["Dataset too large", "|", "O(2ⁿ) complexity avoids freezing the system"]
+            }
+
+    sudos_data = {
+        "NODES": nodes,
+        "EDGES": edges,
+        "ALGOS": algos
+    }
+    
+    js_payload = json.dumps(sudos_data)
+    
+    template_path = os.path.join("ui", "template.html")
+    report_path = os.path.join("ui", "sudos_report.html")
+    
+    if not os.path.exists(template_path):
+        logging.error("Could not find ui/template.html. Start by creating the template.")
+        return
+        
+    with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+        
+    html = html.replace("<!-- INJECT_SUDOS_DATA -->", js_payload)
+    
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write(html)
+        
+    logging.info(f"Report generated successfully: {report_path}")
 
 if __name__ == "__main__":
     main()
