@@ -52,17 +52,25 @@ SUDOS
 │   ├── dp_tsp.py
 │   └── heuristic_tsp.py
 │
-├── data
-│   └── datasets
+├── core
+│   └── graph.py
 │
-├── utils
-│   └── graph_generator.py
+├── datasets
+│   └── [JSON Datasets]
 │
-├── experiments
-│   └── performance_analysis.py
+├── docs
+│   └── PROJECT_DOCUMENTATION.md
 │
-├── results
-│   └── output metrics and graphs
+├── analysis
+│   ├── analysis_runner.py
+│   ├── benchmark.py
+│   └── charts.py
+│
+├── tests             
+│   └── test_system.py
+│
+├── tools             
+│   └── generate_datasets.py
 │
 ├── main.py
 ├── requirements.txt
@@ -85,3 +93,23 @@ SUDOS
 This project demonstrates how algorithmic paradigms such as **Greedy methods, Graph algorithms, and Dynamic Programming** can be applied to optimize real-world delivery systems. The study highlights the balance between **optimal solutions and computational efficiency** in urban logistics.
 
 ---
+
+## 🚀 Setup Instructions
+
+To run SUDOS locally, set up your Python environment and install the dependencies.
+
+```bash
+# 1. Create a virtual environment
+python -m venv venv
+
+# 2. Activate the virtual environment
+# On Windows:
+venv\Scripts\activate
+# On Mac/Linux:
+source venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+```
+
+For more detailed information, please read the [Project Documentation](docs/PROJECT_DOCUMENTATION.md).

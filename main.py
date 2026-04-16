@@ -1,23 +1,52 @@
 import json
-from algorthms.utils import graph_to_distance_matrix
-from algorthms.route_optimizer import run_tsp_algorithms
+import argparse
+import logging
+import sys
 
-# Load dataset (change file if needed)
-with open("datasets/small_graph.json") as f:
-    data=json.load(f)
+from algorithms.route_optimizer import run_tsp_algorithms
+from algorithms.utils import graph_to_distance_matrix
 
-graph=data["graph"]
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-# Convert graph → distance matrix
-from algorithms.dijkstra import get_distance_matrix
+def main():
+    parser = argparse.ArgumentParser(description="Run SUDOS Algorithms")
+    parser.add_argument("--dataset", type=str, default="datasets/small_graph.json", help="Path to the dataset JSON file")
+    parser.add_argument("--verbose", action="store_true", help="Print distance matrix")
+    
+    args = parser.parse_args()
 
-distance_matrix = get_distance_matrix(graph)
+    try:
+        with open(args.dataset, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Dataset file '{args.dataset}' not found.")
+        logging.info("Please generate one using: python tools/generate_datasets.py --size small")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        logging.error(f"Dataset file '{args.dataset}' is invalid JSON.")
+        sys.exit(1)
 
-# Run TSP algorithms
-results=run_tsp_algorithms(distance_matrix)
-for row in distance_matrix:
-    print(row)
-# Print results
-print("\n--- RESULTS ---")
-print("Greedy:", results["greedy"])
-print("DP:", results["dp"])
+    graph = data.get("graph")
+    if not graph:
+        logging.error("Dataset must contain a 'graph' key.")
+        sys.exit(1)
+
+    logging.info(f"Loaded dataset: {args.dataset}")
+    logging.info("Converting graph to distance matrix...")
+    
+    distance_matrix = graph_to_distance_matrix(graph)
+
+    if args.verbose:
+        logging.info("Distance Matrix Output:")
+        for row in distance_matrix:
+            print(row)
+
+    logging.info("Running TSP algorithms...")
+    results = run_tsp_algorithms(distance_matrix)
+    
+    print("\n--- PERFORMANCE RESULTS ---")
+    print(f"Greedy Cost: {results.get('greedy')}")
+    print(f"DP Cost:     {results.get('dp')}")
+
+if __name__ == "__main__":
+    main()

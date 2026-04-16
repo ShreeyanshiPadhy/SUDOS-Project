@@ -1,0 +1,29 @@
+[
+  {
+    "algorithm": "Greedy TSP",
+    "dataset": "small",
+    "nodes": 10,
+    "execution_time_ms": 0.0363,
+    "memory_used_mb": 0.0004,
+    "solution_cost": 94,
+    "path_length": 11
+  },
+  {
+    "algorithm": "DP TSP",
+    "dataset": "small",
+    "nodes": 10,
+    "execution_time_ms": 45.435,
+    "memory_used_mb": 0.2496,
+    "solution_cost": 82,
+    "path_length": 0
+  },
+  {
+    "algorithm": "Greedy TSP",
+    "dataset": "medium",
+    "nodes": 50,
+    "execution_time_ms": 0.1648,
+    "memory_used_mb": 0.0009,
+    "solution_cost": 191,
+    "path_length": 51
+  }
+]

@@ -1,0 +1,53 @@
+================================================================================
+SUDOS - ALGORITHM PERFORMANCE ANALYSIS REPORT
+Generated: 2026-04-16 11:07:45
+================================================================================
+
+📋 SUMMARY STATISTICS
+--------------------------------------------------------------------------------
+
+DP TSP:
+  Datasets tested: 1
+  Average time: 45.4350 ms
+  Average cost: 82.00
+  Nodes tested: 10
+
+Greedy TSP:
+  Datasets tested: 2
+  Average time: 0.1006 ms
+  Average cost: 142.50
+  Nodes tested: 10, 50
+
+
+📊 DETAILED RESULTS BY DATASET
+--------------------------------------------------------------------------------
+
+MEDIUM Dataset:
+Algorithm            Time (ms)       Memory (MB)     Cost           
+-----------------------------------------------------------------
+Greedy TSP                  0.1648         0.0009         191.00
+
+SMALL Dataset:
+Algorithm            Time (ms)       Memory (MB)     Cost           
+-----------------------------------------------------------------
+DP TSP                     45.4350         0.2496          82.00
+Greedy TSP                  0.0363         0.0004          94.00
+
+Algorithm Comparison:
+  Greedy solution is 14.63% worse than DP (Optimal)
+  Greedy is 1251.65x faster than DP
+
+
+💡 RECOMMENDATIONS
+--------------------------------------------------------------------------------
+• Fastest algorithm: Greedy TSP (0.0363 ms)
+• Best solution quality: DP TSP (cost: 82.00)
+• Most memory efficient: Greedy TSP (0.0004 MB)
+
+• For real-time delivery requests: Use Greedy TSP (fast, good enough)
+• For optimal planning with small datasets: Use DP TSP
+• For balanced performance: Consider hybrid approach based on dataset size
+
+================================================================================
+END OF REPORT
+================================================================================
