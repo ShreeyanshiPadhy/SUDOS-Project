@@ -105,8 +105,9 @@ table.ct tr:last-child td{border:none}
       </div>
     </div>
     <div class="row" style="align-items:stretch">
-      <div class="card" style="flex:1;min-width:0">
+      <div class="card" style="flex:1;min-width:0;position:relative">
         <div class="card-title" id="graph-title">Route visualization</div>
+        <div id="recenter-btn" style="position:absolute;top:12px;right:12px;padding:3px 8px;font-size:10px;cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary);border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);transition:background 0.15s;" onmouseover="this.style.background='var(--color-border-tertiary)'" onmouseout="this.style.background='var(--color-background-secondary)'">Reset View</div>
         <canvas id="graphCanvas" height="280"></canvas>
         <div class="node-legend">
           <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>Depot</div>
@@ -148,6 +149,13 @@ const ALGOS = SUDOS_DATA.ALGOS || {};
 
 let currentAlgo = Object.keys(ALGOS)[0] || '';
 
+// Interaction state
+let transform = {x: 0, y: 0, k: 1};
+let isDragging = false;
+let dragStart = {x: 0, y: 0};
+let hoveredNode = null;
+let lastLayout = null; 
+
 function renderTabs() {
   const container = document.getElementById('algo-tabs');
   container.innerHTML = '';
@@ -176,20 +184,74 @@ function drawGraph(canvasId, algo){
   const W = c.parentElement.clientWidth - 28;
   c.width = W; c.height = 280;
   
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  NODES.forEach(n => {
-    minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
-    minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
-  });
-  
-  let spanX = maxX - minX || 100;
-  let spanY = maxY - minY || 100;
-  const margin = 30;
-  const sx = (W - 2 * margin) / spanX;
-  const sy = (280 - 2 * margin) / spanY;
-  
-  const trX = (x) => margin + (x - minX) * sx;
-  const trY = (y) => margin + (y - minY) * sy;
+  if (!lastLayout) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      NODES.forEach(n => {
+        minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+        minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+      });
+      
+      let spanX = maxX - minX || 100;
+      let spanY = maxY - minY || 100;
+      const margin = 30;
+      lastLayout = {
+          minX, minY, 
+          sxBase: (W - 2 * margin) / spanX, 
+          syBase: (280 - 2 * margin) / spanY,
+          margin
+      };
+      
+      c.addEventListener('mousedown', e => {
+        isDragging = true;
+        dragStart = {x: e.clientX - transform.x, y: e.clientY - transform.y};
+      });
+      
+      c.addEventListener('mousemove', e => {
+        const rect = c.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        if (isDragging) {
+          transform.x = e.clientX - dragStart.x;
+          transform.y = e.clientY - dragStart.y;
+          drawGraph(canvasId, currentAlgo);
+        } else {
+          let found = null;
+          const {minX, minY, sxBase, syBase, margin} = lastLayout;
+          NODES.forEach(n => {
+             const nx = transform.x + margin + (n.x - minX) * sxBase * transform.k;
+             const ny = transform.y + margin + (n.y - minY) * syBase * transform.k;
+             if (Math.hypot(nx - mx, ny - my) < 12) found = n;
+          });
+          if (hoveredNode !== found) {
+             hoveredNode = found;
+             c.style.cursor = found ? 'pointer' : 'grab';
+             drawGraph(canvasId, currentAlgo);
+          }
+        }
+      });
+      
+      c.addEventListener('mouseup', () => isDragging = false);
+      c.addEventListener('mouseleave', () => {isDragging = false; hoveredNode = null; drawGraph(canvasId, currentAlgo);});
+      
+      c.addEventListener('wheel', e => {
+        e.preventDefault();
+        const rect = c.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+        
+        transform.x = mx - (mx - transform.x) * zoom;
+        transform.y = my - (my - transform.y) * zoom;
+        transform.k *= zoom;
+        drawGraph(canvasId, currentAlgo);
+      });
+      c.style.cursor = 'grab';
+  }
+
+  const {minX, minY, sxBase, syBase, margin} = lastLayout;
+  const trX = (x) => transform.x + margin + (x - minX) * sxBase * transform.k;
+  const trY = (y) => transform.y + margin + (y - minY) * syBase * transform.k;
 
   ctx.clearRect(0,0,W,280);
 
@@ -206,39 +268,53 @@ function drawGraph(canvasId, algo){
     }
   });
 
-  if (!ALGOS[algo]) return;
-  const data = ALGOS[algo];
-  data.routes.forEach(route=>{
-    if (route.nodes.length === 0) return;
-    ctx.beginPath();
-    const first = NODES[route.nodes[0]];
-    ctx.moveTo(trX(first.x), trY(first.y));
-    for(let i=1;i<route.nodes.length;i++){
-      const n=NODES[route.nodes[i]];
-      if(n) ctx.lineTo(trX(n.x), trY(n.y));
-    }
-    ctx.strokeStyle=route.color || '#185FA5';
-    ctx.lineWidth=2;
-    ctx.setLineDash([]);
-    ctx.stroke();
-
-    route.nodes.forEach((ni,idx)=>{
-      const n=NODES[ni];
-      if(!n) return;
+  if (ALGOS[algo]) {
+    const data = ALGOS[algo];
+    data.routes.forEach(route=>{
+      if (route.nodes.length === 0) return;
       ctx.beginPath();
-      ctx.arc(trX(n.x), trY(n.y), idx===0?10:7, 0, Math.PI*2);
-      ctx.fillStyle = ni===0?'#185FA5':'#639922';
-      ctx.fill();
-      ctx.strokeStyle='#fff';
-      ctx.lineWidth=1.5;
+      const first = NODES[route.nodes[0]];
+      ctx.moveTo(trX(first.x), trY(first.y));
+      for(let i=1;i<route.nodes.length;i++){
+        const n=NODES[route.nodes[i]];
+        if(n) ctx.lineTo(trX(n.x), trY(n.y));
+      }
+      ctx.strokeStyle=route.color || '#185FA5';
+      ctx.lineWidth=2;
+      ctx.setLineDash([]);
       ctx.stroke();
-      
-      ctx.font='500 10px var(--font-sans,sans-serif)';
-      ctx.fillStyle='var(--color-text-primary,#222)';
-      ctx.textAlign='center';
-      ctx.fillText(n.label || `N${ni}`, trX(n.x), trY(n.y)+20);
+
+      route.nodes.forEach((ni,idx)=>{
+        const n=NODES[ni];
+        if(!n) return;
+        ctx.beginPath();
+        ctx.arc(trX(n.x), trY(n.y), idx===0?10:7, 0, Math.PI*2);
+        ctx.fillStyle = ni===0?'#185FA5':'#639922';
+        ctx.fill();
+        ctx.strokeStyle='#fff';
+        ctx.lineWidth=1.5;
+        ctx.stroke();
+      });
     });
-  });
+  }
+
+  // Draw tooltips separately so they sit on top layer natively
+  if (hoveredNode) {
+     const hx = trX(hoveredNode.x);
+     const hy = trY(hoveredNode.y);
+     const text = hoveredNode.name || hoveredNode.label;
+     ctx.font = '500 11px var(--font-sans,sans-serif)';
+     const tW = ctx.measureText(text).width;
+     
+     ctx.fillStyle = 'rgba(17, 24, 39, 0.9)';
+     ctx.beginPath();
+     ctx.roundRect(hx - tW/2 - 8, hy - 32, tW + 16, 22, 4);
+     ctx.fill();
+     
+     ctx.fillStyle = '#fff';
+     ctx.textAlign = 'center';
+     ctx.fillText(text, hx, hy - 17);
+  }
 }
 
 function selectAlgo(key, btn){
@@ -256,6 +332,9 @@ function selectAlgo(key, btn){
     ?'<span class="sep" style="padding:3px 4px">|</span>'
     :`<span class="route-chip" style="background:#E6F1FB;color:#0C447C">${c}</span>`
   ).join('');
+  
+  // Reset zoom on tab change
+  transform = {x: 0, y: 0, k: 1};
   drawGraph('graphCanvas', key);
 }
 
@@ -270,9 +349,12 @@ function switchTab(id){
 }
 
 window.addEventListener('load',()=>{
+  document.getElementById('recenter-btn').addEventListener('click', () => {
+    transform = {x: 0, y: 0, k: 1};
+    drawGraph('graphCanvas', currentAlgo);
+  });
   renderTabs();
   selectAlgo(currentAlgo, document.querySelector('.algo-btn.active'));
-  // fallback if no active exists
   const firstBtn = document.querySelector('.algo-btn');
   if(firstBtn && !document.querySelector('.algo-btn.active')) selectAlgo(currentAlgo, firstBtn);
 });

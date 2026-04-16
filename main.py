@@ -142,12 +142,12 @@ def generate_html_report(ds_name, coords, graph_edges, results):
     
     # We map what results returns to the JS format
     if "greedy" in results and isinstance(results["greedy"], dict):
-        # Convert path IDs to array indices
-        path_idx = [node_list.index(n) for n in results["greedy"]["route"] if n in node_list]
+        # Extract path indices natively matched to the distance matrix
+        path_idx = results["greedy"]["route"]
         chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
         algos["greedy"] = {
             "title": "Greedy Nearest Neighbor",
-            "dist": f"{results['greedy']['cost']} units",
+            "dist": f"{float(results['greedy']['cost']):.2f} units",
             "distSub": "Fast heuristic route",
             "time": "O(n²)",
             "runtime": f"{results['greedy'].get('runtime', 0) * 1000:.2f} ms",
@@ -156,11 +156,11 @@ def generate_html_report(ds_name, coords, graph_edges, results):
         }
         
     if "heuristic" in results and isinstance(results["heuristic"], dict):
-        path_idx = [node_list.index(n) for n in results["heuristic"]["route"] if n in node_list]
+        path_idx = results["heuristic"]["route"]
         chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
         algos["heuristic"] = {
             "title": "Insertion Heuristic TSP",
-            "dist": f"{results['heuristic']['cost']} units",
+            "dist": f"{float(results['heuristic']['cost']):.2f} units",
             "distSub": "Less than 2x optimal",
             "time": "O(n² log n)",
             "runtime": f"{results['heuristic'].get('runtime', 0) * 1000:.2f} ms",
@@ -174,12 +174,12 @@ def generate_html_report(ds_name, coords, graph_edges, results):
             path_idx = []
             chips = []
             if isinstance(results["dp"].get("route"), list):
-                path_idx = [node_list.index(n) for n in results["dp"]["route"] if n in node_list]
+                path_idx = results["dp"]["route"]
                 chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
             
             algos["dp"] = {
                 "title": "DP-TSP (Exact)",
-                "dist": f"{results['dp']['cost']} units",
+                "dist": f"{float(results['dp']['cost']):.2f} units",
                 "distSub": "Guaranteed globally optimal",
                 "time": "O(2ⁿ·n²)",
                 "runtime": f"{results['dp'].get('runtime', 0) * 1000:.2f} ms",
