@@ -82,8 +82,8 @@ class GraphLoader:
         for node in self.G.nodes:
             self.graph[node] = []
             self.coordinates[node] = (
-                self.G.nodes[node]['y'],
-                self.G.nodes[node]['x']
+                self.G.nodes[node]['x'],
+                self.G.nodes[node]['y']
             )
 
         for u, v, data in self.G.edges(data=True):

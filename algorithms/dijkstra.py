@@ -140,10 +140,10 @@ if __name__ == "__main__":
     print("Target:", target)
     print("Shortest Distance:", distance)
     print("Path:", path)
-import heapq
 
 def single_source_dijkstra(graph, source):
     dist = {node: float('inf') for node in graph}
+    parent = {node: None for node in graph}
     dist[source] = 0
 
     pq = [(0, source)]
@@ -157,9 +157,10 @@ def single_source_dijkstra(graph, source):
         for v, w in graph[u]:
             if dist[v] > curr_dist + w:
                 dist[v] = curr_dist + w
+                parent[v] = u
                 heapq.heappush(pq, (dist[v], v))
 
-    return dist
+    return dist, parent
 
 
 def get_distance_matrix(graph):
@@ -169,13 +170,19 @@ def get_distance_matrix(graph):
     node_index = {node: i for i, node in enumerate(nodes)}
 
     dist_matrix = [[float('inf')] * n for _ in range(n)]
+    pred_matrix = [[None] * n for _ in range(n)]
 
-    for src in nodes:
-        distances = single_source_dijkstra(graph, src)
+    for src_node in nodes:
+        distances, parents = single_source_dijkstra(graph, src_node)
+        i = node_index[src_node]
 
-        for dest in nodes:
-            i = node_index[src]
-            j = node_index[dest]
-            dist_matrix[i][j] = distances[dest]
+        for dest_node in nodes:
+            j = node_index[dest_node]
+            dist_matrix[i][j] = distances[dest_node]
+            
+            # Record predecessor in original graph IDs
+            pred = parents[dest_node]
+            if pred is not None:
+                pred_matrix[i][j] = node_index[pred]
 
-    return dist_matrix
+    return dist_matrix, pred_matrix

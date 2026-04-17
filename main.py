@@ -64,158 +64,138 @@ def main():
                 visited.add(neigh)
                 queue.append(neigh)
 
-    selected_nodes = visited
+    selected_nodes = sorted(list(visited))
 
     # Filter graph strictly to the selected subgraph
     graph = {
         node: [(neigh, w) for neigh, w in graph[node] if neigh in selected_nodes]
         for node in selected_nodes
     }
-    logging.info(f"Loaded dataset: {args.dataset}")
+    
+    # Re-map node IDs to 0..N-1 for matrix indexing
+    node_to_idx = {node: i for i, node in enumerate(selected_nodes)}
+    idx_graph = {node_to_idx[u]: [(node_to_idx[v], w) for v, w in graph[u]] for u in selected_nodes}
+    graph = idx_graph # Use sequential indices for TSP consistency
+    
+    logging.info(f"Loaded dataset: {args.dataset} (Sanitized to {len(selected_nodes)} connected nodes)")
 
     # 🔥 USE DIJKSTRA (IMPORTANT)
     logging.info("Running Dijkstra (all-pairs shortest paths)...")
     from algorithms.dijkstra import get_distance_matrix
-    distance_matrix = get_distance_matrix(graph)
+    t0 = time.perf_counter()
+    distance_matrix, predecessor_matrix = get_distance_matrix(graph)
+    dijkstra_time = time.perf_counter() - t0
+    
+    # Safe float conversion for JSON (replace inf with large number)
+    SAFE_INF = 999999.0
+    for i in range(len(distance_matrix)):
+        for j in range(len(distance_matrix[i])):
+            if distance_matrix[i][j] == float('inf'): distance_matrix[i][j] = SAFE_INF
 
     if args.verbose:
-        logging.info("Distance Matrix:")
-        for row in distance_matrix:
-            print(row)
+        logging.info("Distance Matrix processed.")
 
     logging.info("Running TSP algorithms...")
     results = run_tsp_algorithms(distance_matrix)
 
     print("\n--- PERFORMANCE RESULTS ---")
-
-    # Always print greedy
     print(f"Greedy:    {results.get('greedy')}")
-
-    if "heuristic" in results:
-        print(f"Heuristic: {results.get('heuristic')}")
-
+    if "heuristic" in results: print(f"Heuristic: {results.get('heuristic')}")
     print(f"DP:        {results.get('dp')}")
 
     if args.report:
-        generate_html_report(args.dataset, data.get("coordinates", {}), graph, results)
+        # Use the original coordinates from the data but pass the selected node IDs
+        coords_subset = {}
+        original_node_ids = selected_nodes 
+        for i, nid in enumerate(original_node_ids):
+            coords_subset[str(i)] = data.get("coordinates", {}).get(str(nid), [0, 0])
+        
+        generate_html_report(args.dataset, coords_subset, graph, results, distance_matrix, predecessor_matrix, dijkstra_time)
 
-def generate_html_report(ds_name, coords, graph_edges, results):
+def generate_html_report(ds_name, coords, graph_edges, results, dist_matrix, pred_matrix, dijkstra_runtime):
     import json
     import math
     
-    # Generate NODES
-    nodes = []
     # mapping node id to index
     node_list = list(graph_edges.keys())
     
+    # Generate NODES
+    nodes = []
     # fallback check if all coordinates in dataset are missing/zero
     all_zero = all(coords.get(str(n), [0, 0]) == [0, 0] for n in node_list)
     
     for i, node_id in enumerate(node_list):
         if all_zero:
-            # Generate a nice circular layout
-            angle = i * (2 * math.pi / len(node_list))
-            pos = [50 + 40 * math.cos(angle), 50 + 40 * math.sin(angle)]
+            nodes.append({"x": 0, "y": 0, "label": f"N{i}", "name": f"Node {i}"})
         else:
-            pos = coords.get(str(node_id), [0, 0])
-            
-        nodes.append({
-            "x": pos[0],
-            "y": pos[1],
-            "label": f"N{node_id}",
-            "name": f"Node {node_id}"
-        })
+            p = coords.get(str(node_id), [0, 0])
+            nodes.append({
+                "x": p[0],
+                "y": p[1],
+                "label": f"N{i}",
+                "name": f"Node {i}"
+            })
         
     # Generate EDGES
     edges = []
     for node, connects in graph_edges.items():
-        node_idx = node_list.index(node)
-        for neigh, weight in connects:
-            try:
-                neigh_idx = node_list.index(neigh)
-                edges.append([node_idx, neigh_idx, weight])
-            except ValueError:
-                pass
+        try:
+            u_idx = node_list.index(node)
+            for neigh, weight in connects:
+                v_idx = node_list.index(neigh)
+                if u_idx < v_idx: edges.append([u_idx, v_idx, weight])
+        except ValueError: pass
 
     # Generate ALGOS
     algos = {}
     
-    # We map what results returns to the JS format
-    if "greedy" in results and isinstance(results["greedy"], dict):
-        # Extract path indices natively matched to the distance matrix
-        path_idx = results["greedy"]["route"]
-        chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
-        algos["greedy"] = {
-            "title": "Greedy Nearest Neighbor",
-            "dist": f"{float(results['greedy']['cost']):.2f} units",
-            "distSub": "Fast heuristic route",
-            "time": "O(n²)",
-            "runtime": f"{results['greedy'].get('runtime', 0) * 1000:.2f} ms",
-            "routes": [{"color": "#185FA5", "nodes": path_idx, "label": "Greedy Tour"}],
-            "chips": chips
-        }
-        
-    if "heuristic" in results and isinstance(results["heuristic"], dict):
-        path_idx = results["heuristic"]["route"]
-        chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
-        algos["heuristic"] = {
-            "title": "Insertion Heuristic TSP",
-            "dist": f"{float(results['heuristic']['cost']):.2f} units",
-            "distSub": "Less than 2x optimal",
-            "time": "O(n² log n)",
-            "runtime": f"{results['heuristic'].get('runtime', 0) * 1000:.2f} ms",
-            "routes": [{"color": "#BA7517", "nodes": path_idx, "label": "Heuristic Tour"}],
-            "chips": chips
-        }
-        
-    if "dp" in results:
-        if isinstance(results["dp"], dict):
-            # Route might be "Not reconstructed"
-            path_idx = []
-            chips = []
-            if isinstance(results["dp"].get("route"), list):
-                path_idx = results["dp"]["route"]
-                chips = [f"{path_idx[i]}→{path_idx[i+1]}" for i in range(len(path_idx)-1)]
+    # Add Dijkstra foundation
+    algos["dijkstra"] = {
+        "title": "Shortest Paths (Dijkstra)",
+        "dist": "N/A",
+        "time": "O(E log V)",
+        "runtime": f"{dijkstra_runtime * 1000:.2f} ms",
+        "routes": []
+    }
+    
+    # TSP result mapping
+    for k in ["greedy", "heuristic", "dp"]:
+        if k in results and isinstance(results[k], dict):
+            res = results[k]
+            path = res.get("route", [])
+            # Skip if path not reconstructed
+            if not isinstance(path, list) or len(path) == 0: continue
             
-            algos["dp"] = {
-                "title": "DP-TSP (Exact)",
-                "dist": f"{float(results['dp']['cost']):.2f} units",
-                "distSub": "Guaranteed globally optimal",
-                "time": "O(2ⁿ·n²)",
-                "runtime": f"{results['dp'].get('runtime', 0) * 1000:.2f} ms",
-                "routes": [{"color": "#639922", "nodes": path_idx, "label": "Optimal Tour"}],
-                "chips": chips
+            algos[k] = {
+                "title": k.capitalize() + " TSP",
+                "dist": f"{float(res['cost']):.1f}",
+                "time": "O(N²)" if k != "dp" else "O(2ⁿ N²)",
+                "runtime": f"{res.get('runtime', 0) * 1000:.2f} ms",
+                "routes": [{"color": "#185FA5", "nodes": path}]
             }
-        else:
-            algos["dp"] = {
-                "title": "DP-TSP (Exact)",
-                "dist": "Skipped",
-                "distSub": "Dataset too large for Exact DP",
-                "time": "O(2ⁿ·n²)",
-                "runtime": "N/A",
-                "routes": [{"color": "#639922", "nodes": [], "label": "Skipped"}],
-                "chips": ["Dataset too large", "|", "O(2ⁿ) complexity avoids freezing the system"]
+        elif k in results and results[k] == "Skipped (too large)":
+             algos[k] = {
+                "title": k.capitalize() + " TSP", "dist": "Skipped", "time": "O(2ⁿ N²)", "runtime": "N/A", "routes": []
             }
 
     sudos_data = {
         "NODES": nodes,
         "EDGES": edges,
-        "ALGOS": algos
+        "ALGOS": algos,
+        "MATRIX": dist_matrix,
+        "PREDECESSORS": pred_matrix
     }
     
     js_payload = json.dumps(sudos_data)
-    
     template_path = os.path.join("ui", "template.html")
     report_path = os.path.join("ui", "sudos_report.html")
     
     if not os.path.exists(template_path):
-        logging.error("Could not find ui/template.html. Start by creating the template.")
+        logging.error("Could not find ui/template.html")
         return
         
     with open(template_path, "r", encoding="utf-8") as f:
-        html = f.read()
-        
-    html = html.replace("<!-- INJECT_SUDOS_DATA -->", js_payload)
+        html = f.read().replace("<!-- INJECT_SUDOS_DATA -->", js_payload)
     
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(html)

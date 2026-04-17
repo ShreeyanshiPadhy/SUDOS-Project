@@ -4,360 +4,622 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SUDOS Algorithm Visualizer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'Fira Code', 'Courier New', Courier, monospace;
-  
-  --color-background-primary: #ffffff;
-  --color-background-secondary: #f4f6f8;
-  --color-background-tertiary: #fafafa;
-  --color-background-info: #eef5fc;
-  
-  --color-border-secondary: #e0e4e8;
-  --color-border-tertiary: #eaedf0;
-  
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
-  --color-text-info: #0c447c;
-  
-  --border-radius-md: 6px;
-  --border-radius-lg: 10px;
+  --color-primary: #185FA5;
+  --color-primary-dark: #0f4a86;
+  --color-primary-light: #e6f1fb;
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
-
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-sans);font-size:13px}
-.shell{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-tertiary); margin: 20px;}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:48px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary)}
-.logo{font-size:14px;font-weight:500;color:var(--color-text-primary)}.logo span{color:#185FA5}
-.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
-.tab{padding:10px 18px;font-size:12px;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
-.tab.active{color:#185FA5;border-bottom:2px solid #185FA5;font-weight:500}
-.tab:hover:not(.active){color:var(--color-text-primary);background:var(--color-background-secondary)}
-.pane{display:none;padding:16px;gap:14px;flex-direction:column}
+body{font-family:var(--font-sans);font-size:13px;background:var(--color-background);color:var(--color-text);-webkit-font-smoothing:antialiased}
+.shell{max-width:1440px;margin:30px auto;border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface);box-shadow:var(--shadow-md);min-height:850px;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;background:var(--color-surface);border-bottom:1px solid var(--color-border)}
+.logo{font-size:16px;font-weight:700;letter-spacing:-0.02em}.logo span{color:var(--color-primary)}
+.tabs{display:flex;background:var(--color-surface);border-bottom:1px solid var(--color-border);padding:0 12px}
+.tab{padding:16px 20px;font-size:12px;color:var(--color-text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;font-weight:500}
+.tab.active{color:var(--color-primary);border-bottom:2px solid var(--color-primary);font-weight:600}
+.tab:hover:not(.active){color:var(--color-text);background: #f1f5f9}
+.pane{display:none;padding:0;gap:16px;flex-direction:column}
 .pane.active{display:flex}
-.row{display:flex;gap:12px;align-items:flex-start}
-.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px}
-.card-sm{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
-.card-title{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px}
-.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;flex:1}
-.metric-label{font-size:10px;color:var(--color-text-secondary);margin-bottom:3px}
-.metric-value{font-size:20px;font-weight:500;color:var(--color-text-primary)}
-.metric-sub{font-size:10px;margin-top:2px}
-.green{color:#3B6D11}.red{color:#A32D2D}.blue{color:#185FA5}.amber{color:#854F0B}
-canvas{display:block;width:100%}
-.algo-btn{padding:6px 12px;font-size:11px;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .15s}
-.algo-btn.active{background:#E6F1FB;color:#0C447C;border-color:#85B7EB;font-weight:500}
-.algo-btn:hover:not(.active){background:var(--color-background-secondary);color:var(--color-text-primary)}
-.btns{display:flex;gap:6px;flex-wrap:wrap}
-.pill{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;display:inline-block}
-.pill-blue{background:#E6F1FB;color:#0C447C}
-.pill-green{background:#EAF3DE;color:#27500A}
-.pill-amber{background:#FAEEDA;color:#633806}
-.pill-teal{background:#E1F5EE;color:#085041}
-.pill-purple{background:#EEEDFE;color:#3C3489}
+.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:18px;position:relative;box-shadow:var(--shadow-sm)}
+.card-title{font-size:11px;font-weight:700;color:var(--color-text-muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.06em}
+.metric{background:var(--color-background);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:12px 16px;flex:1;transition:all 0.2s}
+.metric:hover{border-color:var(--color-primary);background:var(--color-primary-light)}
+.metric-label{font-size:10px;color:var(--color-text-muted);margin-bottom:4px;text-transform:uppercase;font-weight:600}
+.metric-value{font-size:20px;font-weight:700;color:var(--color-text)}
+.pill{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;display:inline-block}
+.pill-blue{background:var(--color-primary-light);color:var(--color-primary)}
+.algo-btn{padding:10px 16px;font-size:11px;cursor:pointer;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text-muted);transition:all 0.2s;font-weight:600}
+.algo-btn:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.algo-btn.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary);box-shadow: 0 4px 6px -1px rgba(24, 95, 165, 0.3)}
+.btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.visualizer-card{flex:1;display:flex;flex-direction:column;border:none;box-shadow:none;padding:0}
+#viz-container{flex:1;background:#ffffff;border-radius:var(--radius-lg);border:1px solid var(--color-border);position:relative;overflow:hidden;box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.02)}
+svg{width:100%;height:100%;display:block}
+.node{cursor:pointer;transition:all 0.2s}
+.node:hover circle{filter:brightness(0.9)}
+.node.depot circle{stroke:var(--color-primary);stroke-width:4}
+.edge{stroke-linecap:round;transition:all 0.3s}
+.route-line{stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.1))}
 table.ct{width:100%;border-collapse:collapse;font-size:11px}
-table.ct th{padding:5px 8px;text-align:left;color:var(--color-text-secondary);font-weight:500;border-bottom:0.5px solid var(--color-border-tertiary)}
-table.ct td{padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
-table.ct tr:last-child td{border:none}
-.winner{background:#EAF3DE}
-.route-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:500;margin:2px}
-.sep{color:var(--color-text-tertiary);font-size:10px}
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.bar-label{width:80px;font-size:11px;color:var(--color-text-secondary);flex-shrink:0}
-.bar-bg{flex:1;height:10px;background:var(--color-background-secondary);border-radius:5px;overflow:hidden}
-.bar-fill{height:100%;border-radius:5px;transition:width .4s}
-.bar-val{width:36px;font-size:11px;font-weight:500;text-align:right;color:var(--color-text-primary)}
-.node-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--color-text-secondary)}
-.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.step-indicator{display:flex;gap:4px;align-items:center;margin-bottom:8px}
-.step-dot{width:6px;height:6px;border-radius:50%;background:var(--color-border-secondary)}
-.step-dot.active{background:#185FA5}
-.info-box{background:var(--color-background-info);border-radius:var(--border-radius-md);padding:8px 12px;font-size:11px;color:var(--color-text-info)}
+table.ct th{padding:12px 8px;text-align:left;color:var(--color-text-muted);font-weight:700;border-bottom:2px solid var(--color-border)}
+table.ct td{padding:12px 8px;border-bottom:1px solid var(--color-border);color:var(--color-text);font-weight:500}
+.bar-bg{flex:1;height:8px;background:var(--color-border);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.5s cubic-bezier(0.4, 0, 0.2, 1)}
+#tooltip{position:absolute;padding:10px 14px;background:rgba(15, 23, 42, 0.95);color:#fff;border-radius:var(--radius-md);font-size:11px;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:100;backdrop-filter:blur(8px);box-shadow: var(--shadow-md);border: 1px solid rgba(255,255,255,0.1)}
 </style>
 </head>
 <body>
-
-<h2 class="sr-only">SUDOS algorithm visualizer: interactive graph and algorithm comparison for delivery route optimization</h2>
-
+<div id="tooltip"></div>
 <div class="shell">
   <div class="topbar">
-    <div class="logo"><span>SUDOS</span> — Algorithm Visualizer</div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span class="pill pill-blue">Report Generated</span>
-      <span style="font-size:11px;color:var(--color-text-secondary)" id="head-stats">Loading...</span>
+    <div class="logo">SUDOS <span>Smart Urban Delivery</span> Tool</div>
+    <div class="btns">
+      <span class="pill pill-blue" id="head-stats">Loading...</span>
     </div>
   </div>
-
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('graph')">Graph & Routes</div>
-    <div class="tab" onclick="switchTab('algo')">Algorithm Comparison</div>
+    <div class="tab active" data-tab="graph" onclick="switchTab('graph')">Direct Store Analytics</div>
+    <div class="tab" data-tab="algo" onclick="switchTab('algo')">Algorithm Benchmarks</div>
+    <div class="tab" data-tab="plan" onclick="switchTab('plan')">Fleet Dispatcher</div>
   </div>
 
-  <!-- TAB 1: Graph & Routes -->
-  <div class="pane active" id="pane-graph">
-    <div class="row">
-      <div style="font-size:11px;color:var(--color-text-secondary)">Select algorithm to visualize route:</div>
-      <div class="btns" id="algo-tabs">
-        <!-- Rendered Dynamically -->
-      </div>
-    </div>
-    <div class="row" style="align-items:stretch">
-      <div class="card" style="flex:1;min-width:0;position:relative">
-        <div class="card-title" id="graph-title">Route visualization</div>
-        <div id="recenter-btn" style="position:absolute;top:12px;right:12px;padding:3px 8px;font-size:10px;cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary);border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);transition:background 0.15s;" onmouseover="this.style.background='var(--color-border-tertiary)'" onmouseout="this.style.background='var(--color-background-secondary)'">Reset View</div>
-        <canvas id="graphCanvas" height="280"></canvas>
-        <div class="node-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>Depot</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#639922"></div>Delivered</div>
+  <div class="main-content" style="display:flex;padding:16px;gap:16px;min-height:calc(100vh - 120px)">
+    <div class="left-col" style="flex:1;display:flex;flex-direction:column;gap:12px;max-width:45%">
+        <div class="pane active" id="pane-graph">
+            <div class="card-title">Strategy Controls</div>
+            <div class="btns" id="algo-tabs" style="margin-bottom:12px"></div>
+            <div class="row" style="margin-bottom:12px">
+                <div class="metric"><div class="metric-label">Tour Cost</div><div class="metric-value" id="m-dist">-</div></div>
+                <div class="metric"><div class="metric-label">Complexity</div><div class="metric-value" id="m-time">-</div></div>
+            </div>
+            <div class="metric" style="margin-bottom:12px"><div class="metric-label">Processing Time</div><div class="metric-value" id="m-runtime">-</div></div>
         </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px;min-width:160px">
-        <div class="metric"><div class="metric-label">Total distance</div><div class="metric-value" id="m-dist">0 km</div><div class="metric-sub" id="m-dist-sub"></div></div>
-        <div class="metric"><div class="metric-label">Time complexity (Theoretical)</div><div class="metric-value" style="font-size:15px" id="m-time">-</div></div>
-      </div>
-    </div>
-    <div class="card-sm">
-      <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:5px">Route breakdown</div>
-      <div id="route-chips" style="display:flex;flex-wrap:wrap;gap:2px"></div>
-    </div>
-  </div>
 
-  <!-- TAB 2: Algorithm Comparison -->
-  <div class="pane" id="pane-algo">
-    <div class="card">
-      <div class="card-title">Full algorithm comparison</div>
-      <table class="ct">
-        <thead><tr><th>Algorithm</th><th>Cost</th><th>Actual Runtime</th></tr></thead>
-        <tbody id="compare-tbody">
-          <!-- Rendered Dynamically -->
-        </tbody>
-      </table>
+        <div class="pane" id="pane-algo">
+            <div class="row" style="margin-bottom:12px">
+                <div class="card" style="flex:1">
+                    <div class="card-title">Solution Quality (Total Cost)</div>
+                    <div style="height:250px"><canvas id="costChart"></canvas></div>
+                </div>
+                <div class="card" style="flex:1">
+                    <div class="card-title">Execution Performance (ms)</div>
+                    <div style="height:250px"><canvas id="timeChart"></canvas></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title" style="margin-bottom:12px">Comparative Data Matrix</div>
+                <table class="ct">
+                    <thead><tr><th>Algorithm</th><th>Cost</th><th>Time</th></tr></thead>
+                    <tbody id="compare-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="pane" id="pane-plan">
+            <div class="card">
+                <div class="card-title">Fleet Operations</div>
+                <div class="row" style="margin-bottom:12px">
+                    <div class="metric"><div class="metric-label">Route Distance</div><div class="metric-value" id="plan-dist">0 units</div></div>
+                    <div class="metric"><div class="metric-label">Est. Voyage Time</div><div class="metric-value" id="plan-time">0h 00m</div></div>
+                </div>
+                <div class="metric" style="margin-bottom:12px"><div class="metric-label">Solver Latency</div><div class="metric-value" id="plan-latency">0.00 ms</div></div>
+                
+                <div class="card-title">Routing Strategy</div>
+                <div class="btns" id="plan-strategy-btns" style="margin-bottom:16px">
+                    <button class="algo-btn active" data-strategy="greedy" onclick="setPlanStrategy('greedy')">Greedy</button>
+                    <button class="algo-btn" data-strategy="heuristic" onclick="setPlanStrategy('heuristic')">Heuristic</button>
+                    <button class="algo-btn" data-strategy="dp" data-strategy="dp" onclick="setPlanStrategy('dp')">DSP</button>
+                    <button class="algo-btn" data-strategy="dijkstra" onclick="setPlanStrategy('dijkstra')">DigiXtra</button>
+                </div>
+
+                <div class="card-title">Agent Dispatch</div>
+                <div class="btns" id="agent-selector" style="margin-bottom:16px"></div>
+                <div class="bar-bg" style="margin-bottom:16px"><div class="bar-fill" id="agent-load-fill" style="width:0%"></div></div>
+
+                <div class="btns" style="margin-bottom:16px">
+                    <button class="algo-btn" onclick="addNewAgent()">＋ Add Agent</button>
+                    <button class="algo-btn" onclick="toggleSimulation()" id="sim-btn">▶ Simulation</button>
+                </div>
+                <table class="ct">
+                    <thead><tr><th>Leg</th><th>Dist</th><th></th></tr></thead>
+                    <tbody id="plan-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="right-col" style="flex:1.2;display:flex;flex-direction:column">
+        <div class="card visualizer-card" style="height:100%;min-height:550px">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+                <span>Interactive Route Visualizer</span>
+                <span class="pill pill-blue" id="viz-mode-pill">Direct Store Mode</span>
+            </div>
+            <div id="viz-container">
+                <svg id="main-svg"></svg>
+            </div>
+        </div>
     </div>
   </div>
 </div>
 
 <script>
-// Data injected by main.py
-const SUDOS_DATA = {"NODES": [{"x": 12.9294047, "y": 79.1294972, "label": "N1079130112", "name": "Node 1079130112"}, {"x": 12.9281794, "y": 79.1295889, "label": "N1079130118", "name": "Node 1079130118"}, {"x": 12.9344641, "y": 79.1590955, "label": "N1067402237", "name": "Node 1067402237"}, {"x": 12.9313894, "y": 79.1434423, "label": "N11252423722", "name": "Node 11252423722"}, {"x": 12.9348613, "y": 79.1560166, "label": "N1067399734", "name": "Node 1067399734"}, {"x": 12.9291676, "y": 79.1272661, "label": "N1079134206", "name": "Node 1079134206"}, {"x": 12.9263169, "y": 79.1273145, "label": "N9814638671", "name": "Node 9814638671"}, {"x": 12.9267435, "y": 79.1274837, "label": "N9814638675", "name": "Node 9814638675"}, {"x": 12.9266691, "y": 79.1265563, "label": "N9814638676", "name": "Node 9814638676"}, {"x": 12.932813, "y": 79.13851, "label": "N1452401749", "name": "Node 1452401749"}, {"x": 12.9294913, "y": 79.136044, "label": "N9981592662", "name": "Node 9981592662"}, {"x": 12.9265976, "y": 79.1257765, "label": "N9814638679", "name": "Node 9814638679"}, {"x": 12.9262729, "y": 79.1266222, "label": "N9814638678", "name": "Node 9814638678"}, {"x": 12.9265607, "y": 79.1275049, "label": "N9814638680", "name": "Node 9814638680"}, {"x": 12.9331311, "y": 79.1415754, "label": "N11252439131", "name": "Node 11252439131"}, {"x": 12.9285015, "y": 79.1282073, "label": "N9814638683", "name": "Node 9814638683"}, {"x": 12.9262516, "y": 79.1260211, "label": "N9814638684", "name": "Node 9814638684"}, {"x": 12.9310257, "y": 79.1362391, "label": "N9981592679", "name": "Node 9981592679"}, {"x": 12.9311424, "y": 79.1329104, "label": "N1068780139", "name": "Node 1068780139"}, {"x": 12.9295488, "y": 79.1298003, "label": "N1068779628", "name": "Node 1068779628"}, {"x": 12.9297528, "y": 79.1340577, "label": "N1079177840", "name": "Node 1079177840"}, {"x": 12.9259368, "y": 79.1198501, "label": "N10820419712", "name": "Node 10820419712"}, {"x": 12.9296908, "y": 79.1339775, "label": "N1079177857", "name": "Node 1079177857"}, {"x": 12.9319249, "y": 79.1447728, "label": "N9283014787", "name": "Node 9283014787"}, {"x": 12.9310256, "y": 79.1452074, "label": "N9283014788", "name": "Node 9283014788"}, {"x": 12.9321236, "y": 79.1451752, "label": "N9283014790", "name": "Node 9283014790"}, {"x": 12.9299286, "y": 79.1343404, "label": "N1079177873", "name": "Node 1079177873"}, {"x": 12.9346868, "y": 79.1560517, "label": "N1303881371", "name": "Node 1303881371"}, {"x": 12.9294565, "y": 79.133599, "label": "N11257366688", "name": "Node 11257366688"}, {"x": 12.9344727, "y": 79.1387184, "label": "N9670425779", "name": "Node 9670425779"}, {"x": 12.9335344, "y": 79.1470844, "label": "N2559815884", "name": "Node 2559815884"}, {"x": 12.9346681, "y": 79.1541944, "label": "N1067408602", "name": "Node 1067408602"}, {"x": 12.9317515, "y": 79.1350487, "label": "N13420327151", "name": "Node 13420327151"}, {"x": 12.9321007, "y": 79.1368579, "label": "N13420327158", "name": "Node 13420327158"}, {"x": 12.9311125, "y": 79.1444841, "label": "N2186777851", "name": "Node 2186777851"}, {"x": 12.9354431, "y": 79.1386357, "label": "N9780806922", "name": "Node 9780806922"}, {"x": 12.9295712, "y": 79.1339873, "label": "N9585794318", "name": "Node 9585794318"}, {"x": 12.9247757, "y": 79.1260397, "label": "N9555797775", "name": "Node 9555797775"}, {"x": 12.925622, "y": 79.1275488, "label": "N9555797787", "name": "Node 9555797787"}, {"x": 12.9343936, "y": 79.1476677, "label": "N2186777887", "name": "Node 2186777887"}, {"x": 12.9249868, "y": 79.127291, "label": "N9555797793", "name": "Node 9555797793"}, {"x": 12.9249523, "y": 79.1270923, "label": "N9555797794", "name": "Node 9555797794"}, {"x": 12.9283415, "y": 79.1272986, "label": "N1079130930", "name": "Node 1079130930"}, {"x": 12.9275337, "y": 79.1256541, "label": "N1079128372", "name": "Node 1079128372"}, {"x": 12.9263205, "y": 79.1253955, "label": "N9555797812", "name": "Node 9555797812"}, {"x": 12.9316414, "y": 79.1442284, "label": "N2163906875", "name": "Node 2163906875"}, {"x": 12.9317281, "y": 79.1443025, "label": "N2163906876", "name": "Node 2163906876"}, {"x": 12.9323252, "y": 79.1388532, "label": "N7127729988", "name": "Node 7127729988"}, {"x": 12.9331387, "y": 79.1354125, "label": "N11257366853", "name": "Node 11257366853"}, {"x": 12.9340165, "y": 79.1445194, "label": "N2163906893", "name": "Node 2163906893"}, {"x": 12.9298959, "y": 79.1391594, "label": "N7127730002", "name": "Node 7127730002"}, {"x": 12.9338133, "y": 79.1437742, "label": "N1348980060", "name": "Node 1348980060"}, {"x": 12.9338903, "y": 79.143731, "label": "N1348980061", "name": "Node 1348980061"}, {"x": 12.9236479, "y": 79.1223822, "label": "N9555797858", "name": "Node 9555797858"}, {"x": 12.9350228, "y": 79.1539987, "label": "N1348980084", "name": "Node 1348980084"}, {"x": 12.9350712, "y": 79.1542047, "label": "N1348980085", "name": "Node 1348980085"}, {"x": 12.9320562, "y": 79.1381543, "label": "N1068778358", "name": "Node 1068778358"}, {"x": 12.9325232, "y": 79.1383947, "label": "N1068778361", "name": "Node 1068778361"}, {"x": 12.9355452, "y": 79.1558369, "label": "N1348980089", "name": "Node 1348980089"}, {"x": 12.9356939, "y": 79.1564318, "label": "N1348980090", "name": "Node 1348980090"}, {"x": 12.9357761, "y": 79.1563977, "label": "N1348980091", "name": "Node 1348980091"}, {"x": 12.936205, "y": 79.158667, "label": "N1348980094", "name": "Node 1348980094"}, {"x": 12.9326524, "y": 79.1381282, "label": "N1068778367", "name": "Node 1068778367"}, {"x": 12.931939, "y": 79.1374911, "label": "N1068778368", "name": "Node 1068778368"}, {"x": 12.9318397, "y": 79.1377245, "label": "N1068778373", "name": "Node 1068778373"}, {"x": 12.9347384, "y": 79.1490909, "label": "N1068778381", "name": "Node 1068778381"}, {"x": 12.9296182, "y": 79.1297468, "label": "N313299854", "name": "Node 313299854"}, {"x": 12.9347639, "y": 79.1484128, "label": "N11252444566", "name": "Node 11252444566"}, {"x": 12.9316422, "y": 79.1350523, "label": "N10117745047", "name": "Node 10117745047"}, {"x": 12.9312637, "y": 79.1347268, "label": "N10117745048", "name": "Node 10117745048"}, {"x": 12.9343256, "y": 79.1477118, "label": "N11252444567", "name": "Node 11252444567"}, {"x": 12.9326086, "y": 79.1387503, "label": "N1068776859", "name": "Node 1068776859"}, {"x": 12.9286718, "y": 79.1272744, "label": "N1079128480", "name": "Node 1079128480"}, {"x": 12.9323317, "y": 79.1376254, "label": "N1068778402", "name": "Node 1068778402"}, {"x": 12.9347739, "y": 79.1475665, "label": "N11252444578", "name": "Node 11252444578"}, {"x": 12.9324107, "y": 79.1416494, "label": "N11252447141", "name": "Node 11252447141"}, {"x": 12.9269575, "y": 79.1241091, "label": "N9766426055", "name": "Node 9766426055"}, {"x": 12.9351615, "y": 79.1571808, "label": "N9985956809", "name": "Node 9985956809"}, {"x": 12.934581, "y": 79.1572882, "label": "N9985956810", "name": "Node 9985956810"}, {"x": 12.935837, "y": 79.1570576, "label": "N9985956811", "name": "Node 9985956811"}, {"x": 12.9266388, "y": 79.1232991, "label": "N9766426063", "name": "Node 9766426063"}, {"x": 12.9257764, "y": 79.123401, "label": "N9766426064", "name": "Node 9766426064"}, {"x": 12.9250336, "y": 79.1234976, "label": "N9766426065", "name": "Node 9766426065"}, {"x": 12.9256823, "y": 79.122988, "label": "N9766426066", "name": "Node 9766426066"}, {"x": 12.9295519, "y": 79.126617, "label": "N1079132115", "name": "Node 1079132115"}, {"x": 12.929554, "y": 79.1341672, "label": "N1462878678", "name": "Node 1462878678"}, {"x": 12.9249814, "y": 79.1225052, "label": "N9766426071", "name": "Node 9766426071"}, {"x": 12.9283457, "y": 79.1265524, "label": "N1079132119", "name": "Node 1079132119"}, {"x": 12.9296052, "y": 79.1341997, "label": "N1462878680", "name": "Node 1462878680"}, {"x": 12.9247408, "y": 79.1225427, "label": "N9766426072", "name": "Node 9766426072"}, {"x": 12.9263518, "y": 79.1224236, "label": "N7896655835", "name": "Node 7896655835"}, {"x": 12.9247517, "y": 79.1226769, "label": "N9766426076", "name": "Node 9766426076"}, {"x": 12.9294775, "y": 79.1355696, "label": "N2163516889", "name": "Node 2163516889"}, {"x": 12.929497, "y": 79.136236, "label": "N2163516891", "name": "Node 2163516891"}, {"x": 12.9276602, "y": 79.1249583, "label": "N2559828450", "name": "Node 2559828450"}, {"x": 12.9258287, "y": 79.1237551, "label": "N9766426084", "name": "Node 9766426084"}, {"x": 12.9248977, "y": 79.1214377, "label": "N9766426086", "name": "Node 9766426086"}, {"x": 12.9312243, "y": 79.1387862, "label": "N9603065842", "name": "Node 9603065842"}, {"x": 12.9312348, "y": 79.1389402, "label": "N9603065843", "name": "Node 9603065843"}, {"x": 12.9260256, "y": 79.1198328, "label": "N2559828477", "name": "Node 2559828477"}, {"x": 12.9368253, "y": 79.1612239, "label": "N1068777470", "name": "Node 1068777470"}], "EDGES": [[0, 19, 43.18400543747012], [0, 1, 149.3831461382908], [0, 42, 307.71657085083547], [1, 0, 149.3831461382908], [1, 0, 142.74609595143966], [2, 61, 221.2647766693192], [3, 45, 100.61536171866508], [3, 45, 116.11714421508532], [4, 58, 81.18065481994687], [4, 27, 20.58826272634045], [4, 77, 150.32180012398953], [5, 72, 65.07624137841354], [5, 72, 61.801417953846766], [6, 38, 86.83893900041986], [6, 12, 90.22346112934704], [6, 13, 41.84487858344633], [6, 38, 91.92019738870577], [7, 42, 183.01955358423893], [7, 42, 223.68629279499987], [7, 13, 21.516396491196716], [7, 8, 128.29883125200087], [8, 7, 128.29883125200087], [8, 7, 113.84304288511284], [8, 11, 86.7722963787136], [8, 12, 49.2354685646818], [9, 57, 35.472798030086835], [9, 71, 45.858397504939376], [9, 29, 201.919297710698], [10, 92, 61.70512728079589], [10, 93, 22.879497691208044], [10, 93, 26.135340008080167], [10, 92, 54.16648798094094], [10, 17, 231.60716885288912], [11, 8, 86.7722963787136], [11, 8, 110.13633563448866], [12, 6, 90.22346112934704], [12, 8, 49.2354685646818], [12, 6, 96.65739769558998], [12, 16, 72.16697522495545], [12, 8, 57.06435429896074], [13, 6, 41.84487858344633], [13, 7, 21.516396491196716], [13, 7, 26.504301833628766], [13, 6, 46.739616566025475], [13, 15, 342.3046268912228], [14, 51, 293.89751695600484], [14, 75, 92.43442564122799], [14, 47, 336.8295753274856], [15, 13, 342.3046268912228], [15, 13, 337.5264110341446], [16, 12, 72.16697522495545], [16, 12, 77.71238771220203], [17, 64, 235.08305165690695], [17, 10, 231.60716885288912], [17, 88, 350.2868113134657], [17, 10, 267.64013980855054], [18, 68, 291.50409844082225], [18, 72, 718.8207951620233], [19, 66, 12.534848763222028], [19, 66, 10.94277951772085], [19, 0, 43.18400543747012], [19, 69, 613.2051181229817], [20, 26, 36.400599475154195], [20, 88, 29.47076867589879], [20, 22, 14.43150001266217], [21, 99, 11.90184436438834], [21, 90, 362.91221776961174], [21, 99, 10.704795461596003], [22, 20, 14.43150001266217], [22, 36, 18.006524200618376], [22, 28, 52.31011604368835], [23, 46, 68.94419264537844], [23, 24, 138.46015770081655], [23, 46, 61.22922420696742], [23, 25, 50.86342070392142], [24, 23, 138.46015770081655], [24, 23, 127.57547428253707], [25, 23, 50.86342070392142], [25, 23, 62.297779735935556], [26, 20, 36.400599475154195], [26, 63, 489.28781989159256], [26, 69, 171.65955531818548], [27, 4, 20.58826272634045], [27, 4, 21.282792542997342], [28, 38, 878.6931365120566], [28, 22, 52.31011604368835], [29, 62, 231.4704742242797], [29, 9, 201.919297710698], [29, 35, 118.63079217225184], [30, 39, 182.10102008525644], [30, 39, 176.85619850576197], [31, 55, 45.58078735526863], [32, 68, 15.733671388376811], [32, 48, 195.6556029717998], [32, 33, 215.41900307847362], [33, 68, 223.245581909069], [33, 32, 215.41900307847362], [33, 73, 105.82614009386644], [34, 45, 75.83753757563767], [34, 45, 67.5638440246701], [35, 29, 118.63079217225184], [36, 22, 18.006524200618376], [37, 41, 141.53282512097556], [38, 28, 878.6931365120566], [38, 6, 86.83893900041986], [38, 40, 85.0795136613154], [39, 70, 10.653141205674997], [39, 30, 182.10102008525644], [39, 74, 52.401338036089705], [40, 41, 22.8738308878166], [40, 38, 85.0795136613154], [41, 37, 141.53282512097556], [41, 40, 22.8738308878166], [41, 40, 26.5372376832908], [41, 37, 125.32107085344686], [41, 44, 271.8447841893938], [42, 0, 307.71657085083547], [42, 7, 183.01955358423893], [42, 43, 213.35203351534707], [43, 87, 174.02236783338614], [43, 44, 187.2730849552179], [43, 42, 213.35203351534707], [44, 43, 187.2730849552179], [44, 41, 271.8447841893938], [44, 43, 178.41732047362262], [44, 41, 276.9207072088783], [44, 76, 197.2103352902425], [45, 46, 15.648187364953218], [45, 3, 100.61536171866508], [45, 34, 75.83753757563767], [46, 45, 15.648187364953218], [46, 45, 15.116549503342231], [46, 23, 68.94419264537844], [46, 49, 376.84256599240433], [47, 56, 98.35137891979295], [47, 98, 142.76766097811182], [47, 14, 336.8295753274856], [48, 32, 195.6556029717998], [49, 46, 376.84256599240433], [49, 51, 84.79958749588485], [49, 46, 318.58454064710446], [49, 74, 389.88856906012984], [50, 98, 161.41708109397186], [51, 14, 293.89751695600484], [51, 52, 9.767659338881671], [51, 49, 84.79958749588485], [52, 51, 9.767659338881671], [52, 66, 2008.5242897796036], [52, 60, 1729.7338687354322], [53, 89, 128.37476539440516], [54, 55, 29.784619403476178], [55, 31, 45.58078735526863], [55, 31, 56.31223550654334], [55, 54, 29.784619403476178], [55, 58, 216.30034110573774], [56, 64, 65.63114322838177], [56, 57, 61.73462758648414], [56, 47, 98.35137891979295], [57, 56, 61.73462758648414], [57, 71, 44.326587509747085], [57, 62, 40.03984178239185], [57, 9, 35.472798030086835], [58, 4, 81.18065481994687], [58, 4, 93.81883734305488], [58, 55, 216.30034110573774], [58, 59, 78.39145584512305], [59, 60, 10.883561650855505], [59, 58, 78.39145584512305], [59, 79, 81.82688081660271], [60, 59, 10.883561650855505], [60, 59, 12.704298482452295], [60, 52, 1729.7338687354322], [61, 2, 221.2647766693192], [61, 100, 350.2295478900882], [61, 2, 248.05566068723843], [61, 79, 196.39308747167985], [62, 57, 40.03984178239185], [62, 29, 231.4704742242797], [62, 73, 80.05007272092608], [63, 73, 58.00016748423449], [63, 69, 355.03323317212056], [63, 64, 35.95703833114723], [63, 26, 489.28781989159256], [64, 56, 65.63114322838177], [64, 63, 35.95703833114723], [64, 17, 235.08305165690695], [65, 67, 77.95088820289895], [66, 19, 12.534848763222028], [66, 99, 1267.0237528999992], [66, 52, 2008.5242897796036], [67, 65, 77.95088820289895], [67, 70, 96.7935452271631], [67, 74, 115.92805540484696], [68, 18, 291.50409844082225], [68, 32, 15.733671388376811], [68, 33, 223.245581909069], [69, 63, 355.03323317212056], [69, 26, 171.65955531818548], [69, 19, 613.2051181229817], [69, 26, 173.08432013693087], [70, 39, 10.653141205674997], [70, 67, 96.7935452271631], [70, 39, 10.260794459594036], [70, 67, 91.72661500532207], [71, 57, 44.326587509747085], [71, 9, 45.858397504939376], [72, 5, 65.07624137841354], [72, 18, 718.8207951620233], [72, 87, 107.77597335777341], [73, 63, 58.00016748423449], [73, 62, 80.05007272092608], [73, 33, 105.82614009386644], [74, 39, 52.401338036089705], [74, 67, 115.92805540484696], [74, 49, 389.88856906012984], [74, 39, 54.15131277876222], [75, 14, 92.43442564122799], [75, 14, 83.90678607827256], [75, 75, 132.8821430183062], [75, 75, 141.57111094604718], [76, 94, 182.95411478326827], [76, 44, 197.2103352902425], [76, 80, 119.19395507227198], [76, 44, 178.30643543682228], [77, 4, 150.32180012398953], [77, 79, 95.78025012225373], [77, 78, 71.03135577088923], [77, 4, 168.5711592837221], [78, 77, 71.03135577088923], [78, 77, 69.42284422068124], [79, 61, 196.39308747167985], [79, 77, 95.78025012225373], [79, 59, 81.82688081660271], [79, 77, 77.54643119483171], [80, 76, 119.19395507227198], [80, 81, 112.08326057268539], [80, 90, 124.9945415694502], [81, 80, 112.08326057268539], [81, 82, 94.41463252822597], [81, 80, 119.45970265783755], [81, 83, 53.04799519638569], [81, 95, 42.360746936629084], [82, 81, 94.41463252822597], [82, 81, 85.70761520050225], [83, 81, 53.04799519638569], [83, 81, 55.95936744933822], [83, 91, 132.8048956267961], [83, 91, 165.05265643879082], [84, 87, 140.34655964961638], [85, 88, 8.42105708145624], [86, 90, 154.34576069204238], [86, 89, 35.07360592701149], [86, 90, 178.758994695804], [86, 96, 138.9111330267617], [87, 43, 174.02236783338614], [87, 84, 140.34655964961638], [87, 72, 107.77597335777341], [87, 84, 173.4611944446872], [88, 20, 29.47076867589879], [88, 85, 8.42105708145624], [88, 17, 350.2868113134657], [89, 53, 128.37476539440516], [89, 86, 35.07360592701149], [89, 86, 29.104994936687387], [89, 91, 18.63164492586706], [89, 53, 139.43243058795431], [90, 21, 362.91221776961174], [90, 86, 154.34576069204238], [90, 80, 124.9945415694502], [91, 83, 132.8048956267961], [91, 89, 18.63164492586706], [91, 89, 15.896742292982935], [91, 83, 153.87556410305095], [91, 83, 160.70417476056767], [92, 10, 61.70512728079589], [93, 10, 22.879497691208044], [94, 76, 182.95411478326827], [95, 81, 42.360746936629084], [95, 81, 50.26754436737819], [96, 86, 138.9111330267617], [96, 86, 140.351225258845], [97, 98, 18.21044718324792], [98, 47, 142.76766097811182], [98, 50, 161.41708109397186], [98, 97, 18.21044718324792], [98, 97, 17.03289558174452], [98, 50, 167.42713164874812], [98, 47, 132.9986035600496], [99, 66, 1267.0237528999992], [99, 21, 11.90184436438834], [100, 61, 350.2295478900882]], "ALGOS": {"greedy": {"title": "Greedy Nearest Neighbor", "dist": "29593.83 units", "distSub": "Fast heuristic route", "time": "O(n\u00b2)", "runtime": "0.61 ms", "routes": [{"color": "#185FA5", "nodes": [0, 19, 66, 1, 42, 7, 13, 6, 38, 40, 41, 37, 44, 43, 87, 72, 5, 84, 76, 80, 81, 95, 83, 91, 89, 86, 96, 90, 53, 82, 94, 21, 99, 12, 8, 11, 16, 15, 28, 22, 20, 88, 85, 36, 26, 69, 63, 64, 56, 57, 9, 71, 62, 73, 33, 32, 68, 48, 18, 47, 98, 97, 50, 14, 75, 51, 52, 49, 46, 45, 34, 23, 25, 24, 3, 74, 39, 70, 67, 65, 30, 29, 35, 17, 10, 93, 92, 60, 59, 58, 4, 27, 77, 78, 79, 61, 2, 100, 55, 54, 31, 0], "label": "Greedy Tour"}], "chips": ["0\u219219", "19\u219266", "66\u21921", "1\u219242", "42\u21927", "7\u219213", "13\u21926", "6\u219238", "38\u219240", "40\u219241", "41\u219237", "37\u219244", "44\u219243", "43\u219287", "87\u219272", "72\u21925", "5\u219284", "84\u219276", "76\u219280", "80\u219281", "81\u219295", "95\u219283", "83\u219291", "91\u219289", "89\u219286", "86\u219296", "96\u219290", "90\u219253", "53\u219282", "82\u219294", "94\u219221", "21\u219299", "99\u219212", "12\u21928", "8\u219211", "11\u219216", "16\u219215", "15\u219228", "28\u219222", "22\u219220", "20\u219288", "88\u219285", "85\u219236", "36\u219226", "26\u219269", "69\u219263", "63\u219264", "64\u219256", "56\u219257", "57\u21929", "9\u219271", "71\u219262", "62\u219273", "73\u219233", "33\u219232", "32\u219268", "68\u219248", "48\u219218", "18\u219247", "47\u219298", "98\u219297", "97\u219250", "50\u219214", "14\u219275", "75\u219251", "51\u219252", "52\u219249", "49\u219246", "46\u219245", "45\u219234", "34\u219223", "23\u219225", "25\u219224", "24\u21923", "3\u219274", "74\u219239", "39\u219270", "70\u219267", "67\u219265", "65\u219230", "30\u219229", "29\u219235", "35\u219217", "17\u219210", "10\u219293", "93\u219292", "92\u219260", "60\u219259", "59\u219258", "58\u21924", "4\u219227", "27\u219277", "77\u219278", "78\u219279", "79\u219261", "61\u21922", "2\u2192100", "100\u219255", "55\u219254", "54\u219231", "31\u21920"]}, "heuristic": {"title": "Insertion Heuristic TSP", "dist": "26378.48 units", "distSub": "Less than 2x optimal", "time": "O(n\u00b2 log n)", "runtime": "68.83 ms", "routes": [{"color": "#BA7517", "nodes": [0, 84, 72, 5, 87, 43, 44, 99, 21, 90, 80, 95, 81, 82, 91, 53, 86, 96, 89, 83, 94, 76, 38, 40, 37, 41, 6, 16, 12, 11, 8, 13, 15, 7, 42, 1, 36, 28, 22, 85, 88, 20, 26, 17, 93, 92, 10, 32, 48, 18, 68, 33, 73, 63, 62, 57, 71, 35, 29, 9, 56, 50, 98, 97, 14, 30, 39, 70, 67, 65, 74, 3, 45, 34, 25, 23, 24, 46, 49, 59, 100, 61, 2, 79, 77, 78, 27, 4, 31, 55, 54, 58, 60, 52, 51, 75, 47, 64, 69, 66, 19, 0], "label": "Heuristic Tour"}], "chips": ["0\u219284", "84\u219272", "72\u21925", "5\u219287", "87\u219243", "43\u219244", "44\u219299", "99\u219221", "21\u219290", "90\u219280", "80\u219295", "95\u219281", "81\u219282", "82\u219291", "91\u219253", "53\u219286", "86\u219296", "96\u219289", "89\u219283", "83\u219294", "94\u219276", "76\u219238", "38\u219240", "40\u219237", "37\u219241", "41\u21926", "6\u219216", "16\u219212", "12\u219211", "11\u21928", "8\u219213", "13\u219215", "15\u21927", "7\u219242", "42\u21921", "1\u219236", "36\u219228", "28\u219222", "22\u219285", "85\u219288", "88\u219220", "20\u219226", "26\u219217", "17\u219293", "93\u219292", "92\u219210", "10\u219232", "32\u219248", "48\u219218", "18\u219268", "68\u219233", "33\u219273", "73\u219263", "63\u219262", "62\u219257", "57\u219271", "71\u219235", "35\u219229", "29\u21929", "9\u219256", "56\u219250", "50\u219298", "98\u219297", "97\u219214", "14\u219230", "30\u219239", "39\u219270", "70\u219267", "67\u219265", "65\u219274", "74\u21923", "3\u219245", "45\u219234", "34\u219225", "25\u219223", "23\u219224", "24\u219246", "46\u219249", "49\u219259", "59\u2192100", "100\u219261", "61\u21922", "2\u219279", "79\u219277", "77\u219278", "78\u219227", "27\u21924", "4\u219231", "31\u219255", "55\u219254", "54\u219258", "58\u219260", "60\u219252", "52\u219251", "51\u219275", "75\u219247", "47\u219264", "64\u219269", "69\u219266", "66\u219219", "19\u21920"]}, "dp": {"title": "DP-TSP (Exact)", "dist": "Skipped", "distSub": "Dataset too large for Exact DP", "time": "O(2\u207f\u00b7n\u00b2)", "runtime": "N/A", "routes": [{"color": "#639922", "nodes": [], "label": "Skipped"}], "chips": ["Dataset too large", "|", "O(2\u207f) complexity avoids freezing the system"]}}};
+    const SUDOS_DATA = {"NODES": [{"x": 0, "y": 0, "label": "N0", "name": "Node 0"}, {"x": 0, "y": 0, "label": "N1", "name": "Node 1"}, {"x": 0, "y": 0, "label": "N2", "name": "Node 2"}, {"x": 0, "y": 0, "label": "N3", "name": "Node 3"}, {"x": 0, "y": 0, "label": "N4", "name": "Node 4"}, {"x": 0, "y": 0, "label": "N5", "name": "Node 5"}, {"x": 0, "y": 0, "label": "N6", "name": "Node 6"}, {"x": 0, "y": 0, "label": "N7", "name": "Node 7"}, {"x": 0, "y": 0, "label": "N8", "name": "Node 8"}, {"x": 0, "y": 0, "label": "N9", "name": "Node 9"}], "EDGES": [[0, 1, 4], [0, 2, 2], [1, 3, 5], [1, 4, 10], [2, 5, 3], [3, 6, 2], [4, 7, 6], [5, 6, 4], [5, 8, 8], [6, 9, 7]], "ALGOS": {"dijkstra": {"title": "Shortest Paths (Dijkstra)", "dist": "N/A", "time": "O(E log V)", "runtime": "0.08 ms", "routes": []}, "greedy": {"title": "Greedy TSP", "dist": "94.0", "time": "O(N\u00b2)", "runtime": "0.01 ms", "routes": [{"color": "#185FA5", "nodes": [0, 2, 5, 6, 3, 1, 4, 7, 9, 8, 0]}]}, "heuristic": {"title": "Heuristic TSP", "dist": "82.0", "time": "O(N\u00b2)", "runtime": "0.08 ms", "routes": [{"color": "#185FA5", "nodes": [0, 7, 4, 1, 3, 9, 6, 8, 5, 2, 0]}]}, "dp": {"title": "Dp TSP", "dist": "82.0", "time": "O(2\u207f N\u00b2)", "runtime": "5.75 ms", "routes": [{"color": "#185FA5", "nodes": [0, 1, 4, 7, 3, 6, 9, 5, 8, 2, 0]}]}}, "MATRIX": [[0, 4, 2, 9, 14, 5, 9, 20, 13, 16], [4, 0, 6, 5, 10, 9, 7, 16, 17, 14], [2, 6, 0, 9, 16, 3, 7, 22, 11, 14], [9, 5, 9, 0, 15, 6, 2, 21, 14, 9], [14, 10, 16, 15, 0, 19, 17, 6, 27, 24], [5, 9, 3, 6, 19, 0, 4, 25, 8, 11], [9, 7, 7, 2, 17, 4, 0, 23, 12, 7], [20, 16, 22, 21, 6, 25, 23, 0, 33, 30], [13, 17, 11, 14, 27, 8, 12, 33, 0, 19], [16, 14, 14, 9, 24, 11, 7, 30, 19, 0]], "PREDECESSORS": [[null, 0, 0, 1, 1, 2, 5, 4, 5, 6], [1, null, 0, 1, 1, 2, 3, 4, 5, 6], [2, 0, null, 6, 1, 2, 5, 4, 5, 6], [1, 3, 5, null, 1, 6, 3, 4, 5, 6], [1, 4, 0, 1, null, 2, 3, 4, 5, 6], [2, 0, 5, 6, 1, null, 5, 4, 5, 6], [2, 3, 5, 6, 1, 6, null, 4, 5, 6], [1, 4, 0, 1, 7, 2, 3, null, 5, 6], [2, 0, 5, 6, 1, 8, 5, 4, null, 6], [2, 3, 5, 6, 1, 6, 9, 4, 5, null]]};
+    const { NODES, EDGES, ALGOS, MATRIX, PREDECESSORS } = SUDOS_DATA;
 
-const NODES = SUDOS_DATA.NODES || [];
-const EDGES = SUDOS_DATA.EDGES || [];
-const ALGOS = SUDOS_DATA.ALGOS || {};
+    let currentAlgo = 'dijkstra';
+    let currentTab = 'graph';
+    let planStrategy = 'greedy';
+    let agents = [{ id: 0, name: 'Fleet 1', color: '#185FA5', colorLight: '#E6F1FB', deliveries: [], route: [] }];
+    let activeAgentId = 0;
+    let nodeOwnerMap = {};
+    let isSimulating = false, simProgress = 0, lastSimUpdate = 0;
+    let cachedCoords = [];
 
-let currentAlgo = Object.keys(ALGOS)[0] || '';
-
-// Interaction state
-let transform = {x: 0, y: 0, k: 1};
-let isDragging = false;
-let dragStart = {x: 0, y: 0};
-let hoveredNode = null;
-let lastLayout = null; 
-
-function renderTabs() {
-  const container = document.getElementById('algo-tabs');
-  container.innerHTML = '';
-  document.getElementById('head-stats').textContent = `${NODES.length} nodes · Report`;
-  
-  Object.keys(ALGOS).forEach(key => {
-    const btn = document.createElement('div');
-    btn.className = `algo-btn ${key === currentAlgo ? 'active' : ''}`;
-    btn.textContent = ALGOS[key].title;
-    btn.onclick = () => selectAlgo(key, btn);
-    container.appendChild(btn);
-  });
-  
-  const tbody = document.getElementById('compare-tbody');
-  tbody.innerHTML = '';
-  Object.keys(ALGOS).forEach(key => {
-    const d = ALGOS[key];
-    tbody.innerHTML += `<tr><td>${d.title}</td><td>${d.dist}</td><td>${d.runtime}</td></tr>`;
-  });
-}
-
-function drawGraph(canvasId, algo){
-  const c = document.getElementById(canvasId);
-  if(!c) return;
-  const ctx = c.getContext('2d');
-  const W = c.parentElement.clientWidth - 28;
-  c.width = W; c.height = 280;
-  
-  if (!lastLayout) {
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      NODES.forEach(n => {
-        minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
-        minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
-      });
-      
-      let spanX = maxX - minX || 100;
-      let spanY = maxY - minY || 100;
-      const margin = 30;
-      lastLayout = {
-          minX, minY, 
-          sxBase: (W - 2 * margin) / spanX, 
-          syBase: (280 - 2 * margin) / spanY,
-          margin
-      };
-      
-      c.addEventListener('mousedown', e => {
-        isDragging = true;
-        dragStart = {x: e.clientX - transform.x, y: e.clientY - transform.y};
-      });
-      
-      c.addEventListener('mousemove', e => {
-        const rect = c.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-
-        if (isDragging) {
-          transform.x = e.clientX - dragStart.x;
-          transform.y = e.clientY - dragStart.y;
-          drawGraph(canvasId, currentAlgo);
+    function computeCoords() {
+        const hasCoords = NODES.every(n => n.x !== 0 || n.y !== 0);
+        if (hasCoords) {
+            const xs = NODES.map(n=>n.x), ys = NODES.map(n=>n.y);
+            const xmin = Math.min(...xs), xmax = Math.max(...xs);
+            const ymin = Math.min(...ys), ymax = Math.max(...ys);
+            const pad = 60, w = 900, h = 600;
+            cachedCoords = NODES.map(n => ({
+                x: pad + ((n.x - xmin) / (xmax - xmin || 1)) * (w - 2 * pad),
+                y: pad + ((n.y - ymin) / (ymax - ymin || 1)) * (h - 2 * pad)
+            }));
         } else {
-          let found = null;
-          const {minX, minY, sxBase, syBase, margin} = lastLayout;
-          NODES.forEach(n => {
-             const nx = transform.x + margin + (n.x - minX) * sxBase * transform.k;
-             const ny = transform.y + margin + (n.y - minY) * syBase * transform.k;
-             if (Math.hypot(nx - mx, ny - my) < 12) found = n;
-          });
-          if (hoveredNode !== found) {
-             hoveredNode = found;
-             c.style.cursor = found ? 'pointer' : 'grab';
-             drawGraph(canvasId, currentAlgo);
-          }
+            const n = NODES.length, cx = 450, cy = 300, r = 250;
+            cachedCoords = NODES.map((_, i) => ({
+                x: cx + r * Math.cos(2 * Math.PI * i / (n || 1)),
+                y: cy + r * Math.sin(2 * Math.PI * i / (n || 1))
+            }));
         }
-      });
-      
-      c.addEventListener('mouseup', () => isDragging = false);
-      c.addEventListener('mouseleave', () => {isDragging = false; hoveredNode = null; drawGraph(canvasId, currentAlgo);});
-      
-      c.addEventListener('wheel', e => {
-        e.preventDefault();
-        const rect = c.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-        const zoom = e.deltaY < 0 ? 1.1 : 0.9;
-        
-        transform.x = mx - (mx - transform.x) * zoom;
-        transform.y = my - (my - transform.y) * zoom;
-        transform.k *= zoom;
-        drawGraph(canvasId, currentAlgo);
-      });
-      c.style.cursor = 'grab';
-  }
-
-  const {minX, minY, sxBase, syBase, margin} = lastLayout;
-  const trX = (x) => transform.x + margin + (x - minX) * sxBase * transform.k;
-  const trY = (y) => transform.y + margin + (y - minY) * syBase * transform.k;
-
-  ctx.clearRect(0,0,W,280);
-
-  // Draw base edges faintly
-  EDGES.forEach(([a,b])=>{
-    const na=NODES[a],nb=NODES[b];
-    if(na && nb){
-        ctx.beginPath();
-        ctx.moveTo(trX(na.x), trY(na.y));
-        ctx.lineTo(trX(nb.x), trY(nb.y));
-        ctx.strokeStyle='rgba(128,128,128,0.15)';
-        ctx.lineWidth=1;
-        ctx.stroke();
     }
-  });
 
-  if (ALGOS[algo]) {
-    const data = ALGOS[algo];
-    data.routes.forEach(route=>{
-      if (route.nodes.length === 0) return;
-      ctx.beginPath();
-      const first = NODES[route.nodes[0]];
-      ctx.moveTo(trX(first.x), trY(first.y));
-      for(let i=1;i<route.nodes.length;i++){
-        const n=NODES[route.nodes[i]];
-        if(n) ctx.lineTo(trX(n.x), trY(n.y));
-      }
-      ctx.strokeStyle=route.color || '#185FA5';
-      ctx.lineWidth=2;
-      ctx.setLineDash([]);
-      ctx.stroke();
+    function getFullPath(start, end) {
+        if (start === end) return [start];
+        const path = []; let curr = end;
+        const visited = new Set();
+        try {
+            while (curr !== null && curr !== start && !visited.has(curr)) { 
+                visited.add(curr);
+                path.push(curr); 
+                curr = (PREDECESSORS && PREDECESSORS[start]) ? PREDECESSORS[start][curr] : null; 
+            }
+            if (curr === start) return [start, ...path.reverse()];
+        } catch (e) {}
+        return [start, end];
+    }
 
-      route.nodes.forEach((ni,idx)=>{
-        const n=NODES[ni];
-        if(!n) return;
-        ctx.beginPath();
-        ctx.arc(trX(n.x), trY(n.y), idx===0?10:7, 0, Math.PI*2);
-        ctx.fillStyle = ni===0?'#185FA5':'#639922';
-        ctx.fill();
-        ctx.strokeStyle='#fff';
-        ctx.lineWidth=1.5;
-        ctx.stroke();
-      });
-    });
-  }
+    function draw() {
+        computeCoords();
+        const svg = document.getElementById('main-svg');
+        svg.setAttribute('viewBox', '0 0 900 600');
+        svg.innerHTML = '';
+        
+        const gEdges = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const gRoutes = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const gNodes = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        
+        svg.appendChild(gEdges);
+        svg.appendChild(gRoutes);
+        svg.appendChild(gNodes);
 
-  // Draw tooltips separately so they sit on top layer natively
-  if (hoveredNode) {
-     const hx = trX(hoveredNode.x);
-     const hy = trY(hoveredNode.y);
-     const text = hoveredNode.name || hoveredNode.label;
-     ctx.font = '500 11px var(--font-sans,sans-serif)';
-     const tW = ctx.measureText(text).width;
-     
-     ctx.fillStyle = 'rgba(17, 24, 39, 0.9)';
-     ctx.beginPath();
-     ctx.roundRect(hx - tW/2 - 8, hy - 32, tW + 16, 22, 4);
-     ctx.fill();
-     
-     ctx.fillStyle = '#fff';
-     ctx.textAlign = 'center';
-     ctx.fillText(text, hx, hy - 17);
-  }
-}
+        EDGES.forEach(([u, v]) => {
+            if (!cachedCoords[u] || !cachedCoords[v]) return;
+            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            l.setAttribute('x1', cachedCoords[u].x); l.setAttribute('y1', cachedCoords[u].y);
+            l.setAttribute('x2', cachedCoords[v].x); l.setAttribute('y2', cachedCoords[v].y);
+            l.setAttribute('stroke', '#e2e8f0'); l.setAttribute('stroke-width', '1');
+            l.classList.add('edge');
+            gEdges.appendChild(l);
+        });
 
-function selectAlgo(key, btn){
-  document.querySelectorAll('.algo-btn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  currentAlgo = key;
-  const d = ALGOS[key];
-  if(!d) return;
-  document.getElementById('graph-title').textContent = d.title + ' — route visualization';
-  document.getElementById('m-dist').textContent = d.dist;
-  document.getElementById('m-dist-sub').textContent = d.distSub;
-  document.getElementById('m-time').textContent = d.time;
-  const chips = document.getElementById('route-chips');
-  chips.innerHTML = d.chips.map(c=>c==='|'
-    ?'<span class="sep" style="padding:3px 4px">|</span>'
-    :`<span class="route-chip" style="background:#E6F1FB;color:#0C447C">${c}</span>`
-  ).join('');
-  
-  // Reset zoom on tab change
-  transform = {x: 0, y: 0, k: 1};
-  drawGraph('graphCanvas', key);
-}
+        cachedCoords.forEach((p, i) => {
+            const isDepot = i === 0;
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.classList.add('node'); if(isDepot) g.classList.add('depot');
+            
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y);
+            circle.setAttribute('r', isDepot ? 10 : 5);
+            circle.setAttribute('fill', isDepot ? '#ef4444' : '#64748b');
+            circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', isDepot?3:1.5);
+            
+            g.onclick = () => { if(currentTab==='plan') toggleNode(i); };
+            g.onmouseenter = (e) => {
+                let txt = `Node ${i} ${isDepot?'[HQ DEPOT]':''}`;
+                if (currentTab === 'graph' && currentAlgo === 'dijkstra' && i !== 0 && MATRIX[0] && MATRIX[0][i] !== undefined) {
+                    txt += `<br>Dist from HQ: ${MATRIX[0][i].toFixed(1)} units`;
+                    const path = getFullPath(0, i);
+                    let dstr = "";
+                    path.forEach((ni, idx) => {
+                        const cmd = idx === 0 ? 'M' : 'L';
+                        dstr += `${cmd}${cachedCoords[ni].x},${cachedCoords[ni].y} `;
+                    });
+                    const hPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    hPath.setAttribute('d', dstr); hPath.setAttribute('fill', 'none');
+                    hPath.setAttribute('stroke', '#3B82F6'); hPath.setAttribute('stroke-width', '4');
+                    hPath.setAttribute('id', 'hover-path');
+                    svg.insertBefore(hPath, gNodes);
+                }
+                showTooltip(e, txt);
+            };
+            g.onmouseleave = () => {
+                hideTooltip();
+                const hp = document.getElementById('hover-path');
+                if(hp) hp.remove();
+            };
+            
+            g.appendChild(circle);
+            gNodes.appendChild(g);
+        });
 
-function switchTab(id){
-  document.querySelectorAll('.tab').forEach((t,i)=>{
-    const ids=['graph','algo'];
-    t.classList.toggle('active', ids[i]===id);
-  });
-  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
-  document.getElementById('pane-'+id).classList.add('active');
-  if(id==='graph') setTimeout(()=>drawGraph('graphCanvas',currentAlgo),50);
-}
+        if (currentTab === 'graph' && ALGOS[currentAlgo]) {
+            ALGOS[currentAlgo].routes.forEach(r => {
+                let dstr = "";
+                for(let i=0; i<r.nodes.length-1; i++) {
+                    const leg = getFullPath(r.nodes[i], r.nodes[i+1]);
+                    leg.forEach((ni, idx) => {
+                        if(i>0 && idx===0) return;
+                        const cmd = (i===0 && idx===0) ? 'M' : 'L';
+                        dstr += `${cmd}${cachedCoords[ni].x},${cachedCoords[ni].y} `;
+                    });
+                }
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute('d', dstr); path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', r.color || '#185FA5'); path.setAttribute('stroke-width', '3');
+                path.classList.add('route-line');
+                gRoutes.appendChild(path);
+            });
+        } else if (currentTab === 'plan') {
+            agents.forEach(a => {
+                if (!a.route || a.route.length < 2) return;
+                let dstr = "";
+                let legs = [];
+                for(let i=0; i<a.route.length-1; i++) {
+                    const leg = getFullPath(a.route[i], a.route[i+1]);
+                    legs.push(...leg.slice(0, -1));
+                    leg.forEach((ni, idx) => {
+                        if(i>0 && idx===0) return;
+                        const cmd = (i===0 && idx===0) ? 'M' : 'L';
+                        dstr += `${cmd}${cachedCoords[ni].x},${cachedCoords[ni].y} `;
+                    });
+                }
+                legs.push(a.route[a.route.length-1]);
 
-window.addEventListener('load',()=>{
-  document.getElementById('recenter-btn').addEventListener('click', () => {
-    transform = {x: 0, y: 0, k: 1};
-    drawGraph('graphCanvas', currentAlgo);
-  });
-  renderTabs();
-  selectAlgo(currentAlgo, document.querySelector('.algo-btn.active'));
-  const firstBtn = document.querySelector('.algo-btn');
-  if(firstBtn && !document.querySelector('.algo-btn.active')) selectAlgo(currentAlgo, firstBtn);
-});
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute('d', dstr); path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', a.color); path.setAttribute('stroke-width', a.id===activeAgentId?'3.5':'2');
+                if(a.id===activeAgentId) path.setAttribute('stroke-dasharray', '6,6');
+                path.setAttribute('opacity', a.id===activeAgentId?'1':'0.4');
+                gRoutes.appendChild(path);
+                
+                a.deliveries.forEach(del => {
+                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute('cx', cachedCoords[del.nodeIdx].x); dot.setAttribute('cy', cachedCoords[del.nodeIdx].y);
+                    dot.setAttribute('r', '6'); dot.setAttribute('fill', a.color); dot.setAttribute('stroke', '#fff');
+                    gRoutes.appendChild(dot);
+                });
+
+                if (isSimulating && legs.length > 1) {
+                    const totalIdx = (legs.length - 1) * simProgress;
+                    const lIdx = Math.min(legs.length - 2, Math.floor(totalIdx));
+                    const frac = totalIdx - lIdx;
+                    
+                    const p1 = cachedCoords[legs[lIdx]], p2 = cachedCoords[legs[lIdx + 1]];
+                    if (p1 && p2) {
+                        const tx = p1.x + (p2.x - p1.x) * frac;
+                        const ty = p1.y + (p2.y - p1.y) * frac;
+
+                        const truck = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        truck.setAttribute('cx', tx); truck.setAttribute('cy', ty);
+                        truck.setAttribute('r', '10'); truck.setAttribute('fill', a.color);
+                        truck.setAttribute('stroke', '#fff'); truck.setAttribute('stroke-width', '3');
+                        truck.style.filter = 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))';
+                        gRoutes.appendChild(truck);
+                    }
+                }
+            });
+            
+            if (isSimulating) {
+                const overlay = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                overlay.setAttribute('x', '20'); overlay.setAttribute('y', '580');
+                overlay.setAttribute('fill', '#185FA5'); overlay.setAttribute('font-weight', '700');
+                overlay.setAttribute('font-size', '12px');
+                overlay.textContent = `LIVE SIMULATION ACTIVE (${(simProgress*100).toFixed(0)}%)`;
+                svg.appendChild(overlay);
+            }
+        }
+    }
+
+    function showTooltip(e, txt) {
+        const tt = document.getElementById('tooltip');
+        tt.innerHTML = txt; tt.style.opacity = 1;
+        tt.style.left = (e.pageX + 10) + 'px'; tt.style.top = (e.pageY + 10) + 'px';
+    }
+    function hideTooltip() { document.getElementById('tooltip').style.opacity = 0; }
+
+    function switchTab(id) {
+        currentTab = id;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+        document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-'+id));
+        
+        const pill = document.getElementById('viz-mode-pill');
+        const rCol = document.querySelector('.right-col');
+        const lCol = document.querySelector('.left-col');
+
+        if(id === 'graph') {
+            pill.textContent = 'Direct Store Mode';
+            rCol.style.display = 'flex';
+            lCol.style.maxWidth = '45%';
+        } else if(id === 'plan') {
+            pill.textContent = 'Fleet Planning Mode';
+            rCol.style.display = 'flex';
+            lCol.style.maxWidth = '45%';
+        } else {
+            pill.textContent = 'Analysis Mode';
+            rCol.style.display = 'none';
+            lCol.style.maxWidth = '100%';
+            renderCharts();
+        }
+        draw();
+    }
+
+    let costChart = null, timeChart = null;
+    function renderCharts() {
+        const keys = Object.keys(ALGOS).filter(k => k !== 'dijkstra');
+        const labels = keys.map(k => ALGOS[k].title);
+        const costs = keys.map(k => parseFloat(ALGOS[k].dist) || 0);
+        const times = keys.map(k => parseFloat(ALGOS[k].runtime) || 0);
+
+        if(costChart) costChart.destroy();
+        if(timeChart) timeChart.destroy();
+
+        const common = { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, grid:{color:'#f1f5f9'}}, x:{grid:{display:false}}} };
+        
+        costChart = new Chart(document.getElementById('costChart'), {
+            type:'bar',
+            data:{ labels, datasets:[{ data:costs, backgroundColor:'#185FA5', borderRadius:6 }] },
+            options: common
+        });
+        timeChart = new Chart(document.getElementById('timeChart'), {
+            type:'bar',
+            data:{ labels, datasets:[{ data:times, backgroundColor:'#10B981', borderRadius:6 }] },
+            options: common
+        });
+    }
+
+    function selectAlgo(key) {
+        currentAlgo = key;
+        document.querySelectorAll('#algo-tabs .algo-btn').forEach(b => b.classList.toggle('active', b.dataset.algokey === key));
+        const d = ALGOS[key];
+        if (d) {
+            document.getElementById('m-dist').textContent = d.dist || '-';
+            document.getElementById('m-time').textContent = d.time || '-';
+            document.getElementById('m-runtime').textContent = d.runtime || '-';
+        }
+        draw();
+    }
+
+    function setPlanStrategy(key) {
+        planStrategy = key;
+        document.querySelectorAll('#plan-strategy-btns .algo-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('onclick').includes(key));
+        });
+        if(isSimulating) simProgress = 0;
+        updatePlanner();
+    }
+
+    function toggleNode(idx) {
+        if(idx === 0) return;
+        const a = agents.find(ag => ag.id === activeAgentId);
+        const i = a.deliveries.findIndex(d => d.nodeIdx === idx);
+        if(i !== -1) { a.deliveries.splice(i, 1); delete nodeOwnerMap[idx]; }
+        else { if(nodeOwnerMap[idx] !== undefined) return alert("Assigned elsewhere"); a.deliveries.push({nodeIdx:idx}); nodeOwnerMap[idx]=activeAgentId; }
+        updatePlanner();
+    }
+
+    function updatePlanner() {
+        const ag = agents.find(a => a.id === activeAgentId);
+        const sel = document.getElementById('agent-selector');
+        if (sel) sel.innerHTML = agents.map(a => `<button class="algo-btn ${a.id===activeAgentId?'active':''}" onclick="activeAgentId=${a.id};updatePlanner()">${a.name}</button>`).join('');
+        
+        const dpBtn = document.querySelector('button[data-strategy="dp"]');
+        if (dpBtn) {
+            if (NODES.length >= 50) {
+                dpBtn.disabled = true;
+                dpBtn.style.opacity = '0.5';
+                dpBtn.style.cursor = 'not-allowed';
+                dpBtn.title = "Exact DP is computationally expensive for networks > 50 nodes";
+                if (planStrategy === 'dp') setPlanStrategy('greedy');
+            } else {
+                dpBtn.disabled = false;
+                dpBtn.style.opacity = '1';
+                dpBtn.style.cursor = 'pointer';
+                dpBtn.title = "";
+            }
+        }
+
+        const stops = ag.deliveries.map(d=>d.nodeIdx);
+        if (stops.length === 0) {
+            ag.route = [0]; 
+            renderPlanTable(ag); 
+            draw(); 
+            return;
+        }
+
+        const t0 = performance.now();
+        let finalPath = [0];
+        
+        if (planStrategy === 'greedy') {
+            let curr = 0; let un = [...stops];
+            while(un.length > 0) {
+                let nst = -1, min = Infinity;
+                un.forEach(ni => { 
+                    const d = (MATRIX[curr] && MATRIX[curr][ni] !== undefined) ? MATRIX[curr][ni] : Infinity;
+                    if(d<min){min=d; nst=ni;} 
+                });
+                if(nst===-1) nst = un[0];
+                finalPath.push(nst); un = un.filter(x=>x!==nst); curr = nst;
+            }
+            finalPath.push(0);
+        } 
+        else if (planStrategy === 'heuristic') {
+            finalPath = [0, stops[0], 0];
+            for (let i = 1; i < stops.length; i++) {
+                const node = stops[i];
+                let bestIdx = -1, minIncr = Infinity;
+                for (let j = 0; j < finalPath.length - 1; j++) {
+                    const d1 = MATRIX[finalPath[j]][node], d2 = MATRIX[node][finalPath[j+1]], d3 = MATRIX[finalPath[j]][finalPath[j+1]];
+                    const incr = d1 + d2 - d3;
+                    if (incr < minIncr) { minIncr = incr; bestIdx = j + 1; }
+                }
+                finalPath.splice(bestIdx, 0, node);
+            }
+        } 
+        else if (planStrategy === 'dijkstra') {
+            // DigiXtra: Visit in assignment order
+            finalPath = [0, ...stops, 0];
+        }
+        else if (planStrategy === 'dp' && stops.length <= 16 && NODES.length < 50) {
+            const n = stops.length + 1;
+            const nodes = [0, ...stops];
+            const memo = {};
+            function dp(mask, lastIdx) {
+                const key = `${mask}-${lastIdx}`;
+                if (key in memo) return memo[key];
+                if (mask === (1 << n) - 1) return MATRIX[nodes[lastIdx]][0];
+                let res = Infinity;
+                for (let next = 0; next < n; next++) {
+                    if (!(mask & (1 << next))) res = Math.min(res, MATRIX[nodes[lastIdx]][nodes[next]] + dp(mask | (1 << next), next));
+                }
+                return memo[key] = res;
+            }
+            let currMask = 1, currIdx = 0;
+            finalPath = [0];
+            while (currMask !== (1 << n) - 1) {
+                let bestNext = -1, bestVal = Infinity;
+                for (let next = 0; next < n; next++) {
+                    if (!(currMask & (1 << next))) {
+                        const v = MATRIX[nodes[currIdx]][nodes[next]] + dp(currMask | (1 << next), next);
+                        if (v < bestVal) { bestVal = v; bestNext = next; }
+                    }
+                }
+                finalPath.push(nodes[bestNext]);
+                currMask |= (1 << bestNext);
+                currIdx = bestNext;
+            }
+            finalPath.push(0);
+        } else {
+            finalPath = [0, ...stops, 0];
+        }
+
+        const t1 = performance.now();
+        document.getElementById('plan-latency').textContent = (t1 - t0).toFixed(2) + " ms";
+        ag.route = finalPath;
+        renderPlanTable(ag);
+        draw();
+    }
+
+    function renderPlanTable(ag) {
+        let dsum = 0; const tb = document.getElementById('plan-tbody'); 
+        if (!tb) return;
+        tb.innerHTML = '';
+        for(let i=0; i<ag.route.length-1; i++) {
+            const d = (MATRIX[ag.route[i]] && MATRIX[ag.route[i+1]] !== undefined) ? MATRIX[ag.route[i]][ag.route[i+1]] : 0; 
+            dsum += d;
+            tb.innerHTML += `<tr><td>N${ag.route[i]} → N${ag.route[i+1]}</td><td>${d.toFixed(1)}</td><td><button onclick="toggleNode(${ag.route[i+1]})" style="color:red;border:none;background:none;cursor:pointer;font-weight:bold">✕</button></td></tr>`;
+        }
+        document.getElementById('plan-dist').textContent = dsum.toFixed(1) + " units";
+        
+        // Est. Voyage Time (e.g. 5 units = 1 min)
+        const totalMins = Math.round(dsum / 0.8); 
+        const h = Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        document.getElementById('plan-time').textContent = `${h}h ${m.toString().padStart(2,'0')}m`;
+
+        const fill = document.getElementById('agent-load-fill');
+        if (fill) { fill.style.width = Math.min(100, (ag.deliveries.length/12)*100) + "%"; fill.style.background = ag.color; }
+    }
+
+    function addNewAgent() {
+        const colors = ['#185FA5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        if(agents.length >= colors.length) return alert("Agent limit reached");
+        const id = agents.length;
+        agents.push({id, name:`Fleet ${id+1}`, color:colors[id], deliveries:[], route:[]});
+        activeAgentId = id; updatePlanner();
+    }
+
+    function toggleSimulation() { 
+        isSimulating = !isSimulating; 
+        document.getElementById('sim-btn').textContent = isSimulating ? '⏹ Stop Sim' : '▶ Simulation';
+        if(isSimulating) {
+            simProgress = 0;
+            lastSimUpdate = performance.now();
+            requestAnimationFrame(tick);
+        }
+        switchTab('plan'); 
+    }
+
+    function tick(t) {
+        if (!isSimulating) return;
+        const dt = (t - lastSimUpdate) / 1000;
+        lastSimUpdate = t;
+        simProgress += dt * 0.15; // Speed factor
+        if (simProgress >= 1) { 
+            simProgress = 1; 
+            isSimulating = false; 
+            document.getElementById('sim-btn').textContent = '▶ Simulation';
+            draw();
+            return; 
+        }
+        draw();
+        requestAnimationFrame(tick);
+    }
+
+    window.onload = () => {
+        document.getElementById('head-stats').textContent = `${NODES.length} Node Network Active`;
+        const tabs = document.getElementById('algo-tabs');
+        if (tabs) {
+            tabs.innerHTML = '';
+            Object.keys(ALGOS).forEach(k => {
+                const b = document.createElement('button'); 
+                b.className = 'algo-btn';
+                b.dataset.algokey = k;
+                b.textContent = ALGOS[k].title; 
+                b.onclick = () => selectAlgo(k); 
+                tabs.appendChild(b);
+            });
+        }
+        const tb = document.getElementById('compare-tbody');
+        if (tb) {
+            tb.innerHTML = '';
+            Object.keys(ALGOS).forEach(k => {
+                if(k==='dijkstra') return;
+                tb.innerHTML += `<tr><td><b>${ALGOS[k].title}</b></td><td>${ALGOS[k].dist}</td><td>${ALGOS[k].runtime}</td></tr>`;
+            });
+        }
+        
+        switchTab('graph');
+        const startAlgo = Object.keys(ALGOS).includes('dijkstra') ? 'dijkstra' : Object.keys(ALGOS)[0];
+        selectAlgo(startAlgo);
+        updatePlanner();
+    };
 </script>
 </body>
 </html>
+>
+</html>
+
